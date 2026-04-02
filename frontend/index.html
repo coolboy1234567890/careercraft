@@ -656,7 +656,10 @@
     addMessage(val, true);
     input.value = ''; input.style.height = 'auto';
     addTyping();
-    setTimeout(() => { removeTyping(); addMessage("Use the text boxes above to fill in your info — I'll guide you through each step! 😊"); }, 800);
+    setTimeout(() => {
+      removeTyping();
+      addMessage("Glad I could help! 😊 Hit **Start over** to generate another resume, or scroll down to upgrade your plan for unlimited generations and voice matching!");
+    }, 800);
   }
 
   function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
