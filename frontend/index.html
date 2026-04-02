@@ -297,7 +297,7 @@
           <li class="locked">Multiple styles</li>
           <li class="locked">LinkedIn bio</li>
         </ul>
-        <button class="plan-cta outline">Current plan</button>
+        <button class="plan-cta outline" id="freePlanBtn">Current plan</button>
       </div>
       <div class="plan-card featured">
         <div class="plan-tag">Most popular</div>
@@ -311,7 +311,7 @@
           <li class="locked">Multiple styles</li>
           <li class="locked">LinkedIn bio</li>
         </ul>
-        <button class="plan-cta filled" onclick="upgradeToplan('pro')">Upgrade to Pro →</button>
+        <button class="plan-cta filled" id="proPlanBtn" onclick="upgradeToplan('pro')">Upgrade to Pro →</button>
       </div>
       <div class="plan-card">
         <div class="plan-name">Pro+</div>
@@ -324,7 +324,7 @@
           <li>Priority AI speed</li>
           <li>Unlimited saved resumes</li>
         </ul>
-        <button class="plan-cta outline" onclick="upgradeToplan('proplus')">Get Pro+ →</button>
+        <button class="plan-cta outline" id="proplusPlanBtn" onclick="upgradeToplan('proplus')">Get Pro+ →</button>
       </div>
     </div>
   </div>
@@ -394,6 +394,7 @@
     showPage('app');
     updateNav();
     startChat();
+    updatePlanButtons();
     if (currentUser?.plan === 'free') {
       document.getElementById('upgradeBanner').style.display = 'flex';
       // Fetch real usage count
@@ -701,7 +702,12 @@
     await sleep(300);
     addTextarea(steps[0]);
   }
-
+  function updatePlanButtons() {
+    const plan = currentUser?.plan;
+    document.getElementById('freePlanBtn').textContent = plan === 'free' ? 'Current plan' : 'Free';
+    document.getElementById('proPlanBtn').textContent = plan === 'pro' ? 'Current plan ✓' : 'Upgrade to Pro →';
+    document.getElementById('proplusPlanBtn').textContent = plan === 'proplus' ? 'Current plan ✓' : 'Get Pro+ →';
+  }
   // Auto login from saved session
   const saved = localStorage.getItem('cc_user');
   if (saved) { 
