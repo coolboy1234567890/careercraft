@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CareerCraft — AI Resume Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #ffffff12;
+    --border2: #ffffff1e;
+    --accent: #7c6aff;
+    --accent2: #a78bfa;
+    --accent-glow: #7c6aff33;
+    --text: #f0eeff;
+    --text2: #9990cc;
+    --text3: #5a5480;
+    --green: #34d399;
+    --red: #f87171;
+    --gold: #fbbf24;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    top: -40%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 600px;
+    background: radial-gradient(ellipse, #7c6aff18 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    height: 64px;
+    background: #0a0a0fcc;
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.25rem; color: var(--text); letter-spacing: -0.02em; cursor: pointer; }
+  .logo span { color: var(--accent2); }
+  .nav-right { display: flex; align-items: center; gap: 1rem; }
+  .plan-badge { font-size: 0.7rem; font-weight: 500; padding: 4px 10px; border-radius: 999px; background: var(--accent-glow); color: var(--accent2); border: 1px solid #7c6aff44; letter-spacing: 0.05em; text-transform: uppercase; }
+  .nav-btn { font-family: 'DM Sans', sans-serif; font-size: 0.85rem; padding: 8px 18px; border-radius: 8px; cursor: pointer; transition: all 0.2s; border: 1px solid var(--border2); background: var(--surface); color: var(--text2); }
+  .nav-btn:hover { background: var(--surface2); color: var(--text); }
+  .nav-btn.primary { background: var(--accent); color: white; border-color: transparent; }
+  .nav-btn.primary:hover { background: #9580ff; }
+
+  .page { display: none; position: relative; z-index: 1; padding-top: 64px; min-height: 100vh; }
+  .page.active { display: flex; flex-direction: column; }
+
+  /* Auth */
+  .auth-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3rem 1.5rem; }
+  .auth-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 420px; box-shadow: 0 24px 64px #00000050; }
+  .auth-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; margin-bottom: 0.25rem; letter-spacing: -0.02em; }
+  .auth-logo span { color: var(--accent2); }
+  .auth-sub { font-size: 0.85rem; color: var(--text2); margin-bottom: 2rem; }
+  .auth-tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: 10px; padding: 4px; margin-bottom: 1.75rem; }
+  .auth-tab { flex: 1; padding: 8px; border-radius: 7px; border: none; background: transparent; color: var(--text3); font-family: 'DM Sans', sans-serif; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; font-weight: 500; }
+  .auth-tab.active { background: var(--surface); color: var(--text); border: 1px solid var(--border2); }
+  .form-group { margin-bottom: 1rem; }
+  .form-label { display: block; font-size: 0.8rem; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+  .form-input { width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; padding: 0.75rem 1rem; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.9rem; outline: none; transition: border-color 0.2s; }
+  .form-input::placeholder { color: var(--text3); }
+  .form-input:focus { border-color: var(--accent); }
+  .auth-submit { width: 100%; padding: 0.875rem; background: var(--accent); border: none; border-radius: 10px; color: white; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.2s; margin-top: 0.5rem; }
+  .auth-submit:hover { background: #9580ff; }
+  .auth-submit:active { transform: scale(0.98); }
+  .auth-error { background: #f8717122; border: 1px solid #f8717144; border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; color: var(--red); margin-bottom: 1rem; display: none; }
+  .auth-error.show { display: block; }
+
+  /* App */
+  .hero { text-align: center; padding: 4rem 2rem 2.5rem; max-width: 700px; margin: 0 auto; }
+  .hero-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 500; color: var(--accent2); background: var(--accent-glow); border: 1px solid #7c6aff33; padding: 5px 14px; border-radius: 999px; margin-bottom: 1.25rem; letter-spacing: 0.04em; text-transform: uppercase; }
+  .hero-tag::before { content: '✦'; font-size: 0.6rem; }
+  .hero h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 0.75rem; }
+  .hero h1 em { font-style: normal; color: var(--accent2); }
+  .hero p { font-size: 0.95rem; color: var(--text2); line-height: 1.7; font-weight: 300; }
+
+  .chat-wrapper { max-width: 760px; margin: 0 auto 4rem; padding: 0 1.5rem; width: 100%; }
+  .chat-box { background: var(--surface); border: 1px solid var(--border2); border-radius: 20px; overflow: hidden; box-shadow: 0 0 60px #7c6aff0a, 0 24px 48px #00000040; }
+  .chat-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: var(--surface2); }
+  .chat-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+  .chat-header-text { flex: 1; }
+  .chat-header-text strong { display: block; font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; }
+  .chat-header-text span { font-size: 0.75rem; color: var(--green); display: flex; align-items: center; gap: 4px; }
+  .chat-header-text span::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; }
+  .usage-badge { font-size: 0.72rem; padding: 4px 10px; border-radius: 999px; background: var(--accent-glow); color: var(--accent2); border: 1px solid #7c6aff44; }
+  .usage-badge.warn { background: #fbbf2422; color: var(--gold); border-color: #fbbf2444; }
+  .usage-badge.danger { background: #f8717122; color: var(--red); border-color: #f8717144; }
+
+  .messages { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; min-height: 300px; max-height: 480px; overflow-y: auto; }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+  .msg { display: flex; gap: 10px; animation: fadeUp 0.3s ease both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .msg.user { flex-direction: row-reverse; }
+  .msg-avatar { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; margin-top: 2px; }
+  .msg.bot .msg-avatar { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+  .msg.user .msg-avatar { background: var(--surface2); border: 1px solid var(--border2); color: var(--text2); }
+  .msg-bubble { max-width: 80%; padding: 0.75rem 1rem; border-radius: 14px; font-size: 0.9rem; line-height: 1.6; }
+  .msg.bot .msg-bubble { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-top-left-radius: 4px; }
+  .msg.user .msg-bubble { background: var(--accent); color: white; border-top-right-radius: 4px; }
+
+  .chat-input-area { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-end; }
+  .chat-input { flex: 1; background: var(--surface2); border: 1px solid var(--border2); border-radius: 12px; padding: 0.75rem 1rem; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.9rem; resize: none; outline: none; min-height: 44px; max-height: 140px; transition: border-color 0.2s; line-height: 1.5; }
+  .chat-input::placeholder { color: var(--text3); }
+  .chat-input:focus { border-color: var(--accent); }
+  .send-btn { width: 44px; height: 44px; border-radius: 12px; background: var(--accent); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; color: white; }
+  .send-btn:hover { background: #9580ff; transform: scale(1.05); }
+  .send-btn svg { width: 18px; height: 18px; }
+
+  .quick-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .quick-btn { padding: 6px 14px; border-radius: 999px; background: var(--surface2); border: 1px solid var(--border2); color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+  .quick-btn:hover { border-color: var(--accent); color: var(--accent2); background: var(--accent-glow); }
+
+  .textarea-msg { width: 100%; margin-top: 8px; }
+  .textarea-msg textarea { width: 100%; background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 0.75rem; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.85rem; resize: vertical; outline: none; min-height: 100px; transition: border-color 0.2s; line-height: 1.5; }
+  .textarea-msg textarea::placeholder { color: var(--text3); }
+  .textarea-msg textarea:focus { border-color: var(--accent); }
+  .textarea-submit { margin-top: 8px; padding: 8px 20px; background: var(--accent); border: none; border-radius: 8px; color: white; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+  .textarea-submit:hover { background: #9580ff; }
+
+  .result-box { background: var(--bg); border: 1px solid var(--border2); border-radius: 10px; padding: 1rem; margin-top: 8px; font-size: 0.82rem; line-height: 1.7; color: var(--text2); white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+  .result-box::-webkit-scrollbar { width: 3px; }
+  .result-box::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  .result-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .result-action-btn { padding: 6px 14px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; border: 1px solid var(--border2); background: var(--surface2); color: var(--text2); }
+  .result-action-btn:hover { color: var(--text); border-color: var(--accent); }
+  .result-action-btn.primary { background: var(--accent); color: white; border-color: transparent; }
+  .result-action-btn.primary:hover { background: #9580ff; }
+
+  .typing { display: flex; gap: 4px; align-items: center; padding: 12px 16px; }
+  .typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); animation: bounce 1.2s infinite; }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-6px); opacity: 1; } }
+
+  .upgrade-banner { background: linear-gradient(135deg, #7c6aff22, #a78bfa11); border: 1px solid #7c6aff33; border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; }
+  .upgrade-banner p { font-size: 0.85rem; color: var(--text2); line-height: 1.5; }
+  .upgrade-banner strong { color: var(--accent2); font-weight: 500; }
+  .upgrade-btn { white-space: nowrap; padding: 8px 20px; background: var(--accent); border: none; border-radius: 8px; color: white; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+  .upgrade-btn:hover { background: #9580ff; }
+
+  .plans { max-width: 900px; margin: 0 auto 6rem; padding: 0 1.5rem; }
+  .plans-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.8rem; text-align: center; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+  .plans-sub { text-align: center; color: var(--text2); font-size: 0.9rem; margin-bottom: 2.5rem; }
+  .plans-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+  .plan-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 1.75rem; position: relative; transition: border-color 0.2s, transform 0.2s; }
+  .plan-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .plan-card.featured { border-color: var(--accent); background: linear-gradient(135deg, #1a1a2e, #111118); }
+  .plan-tag { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; font-size: 0.65rem; font-weight: 600; padding: 3px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
+  .plan-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem; }
+  .plan-price { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 1.25rem; }
+  .plan-price span { font-size: 0.9rem; font-weight: 400; color: var(--text3); }
+  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.5rem; }
+  .plan-features li { font-size: 0.85rem; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+  .plan-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+  .plan-features li.locked { color: var(--text3); }
+  .plan-features li.locked::before { content: '✕'; color: var(--text3); }
+  .plan-cta { width: 100%; padding: 10px; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; font-weight: 500; }
+  .plan-cta.outline { background: transparent; border: 1px solid var(--border2); color: var(--text2); }
+  .plan-cta.outline:hover { border-color: var(--accent); color: var(--accent2); }
+  .plan-cta.filled { background: var(--accent); border: none; color: white; }
+  .plan-cta.filled:hover { background: #9580ff; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: #00000080; backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 20px; padding: 2rem; max-width: 400px; width: 90%; text-align: center; }
+  .modal-icon { font-size: 2rem; margin-bottom: 1rem; }
+  .modal h3 { font-family: 'Syne', sans-serif; font-weight: 700; margin-bottom: 0.5rem; }
+  .modal p { font-size: 0.875rem; color: var(--text2); margin-bottom: 1.5rem; line-height: 1.6; }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-btns button { flex: 1; padding: 10px; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; }
+
+  footer { text-align: center; padding: 2rem; color: var(--text3); font-size: 0.8rem; border-top: 1px solid var(--border); position: relative; z-index: 1; }
+  footer strong { color: var(--text2); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo" onclick="goHome()">Career<span>Craft</span></div>
+  <div class="nav-right" id="navRight">
+    <button class="nav-btn" onclick="showPage('auth'); setTab('login')">Log in</button>
+    <button class="nav-btn primary" onclick="showPage('auth'); setTab('signup')">Get started</button>
+  </div>
+</nav>
+
+<!-- Auth Page -->
+<div class="page active" id="page-auth">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">Career<span>Craft</span></div>
+      <p class="auth-sub">Your resume, in your voice — powered by AI</p>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="setTab('login')">Log in</button>
+        <button class="auth-tab" id="tab-signup" onclick="setTab('signup')">Sign up</button>
+      </div>
+      <div id="auth-error" class="auth-error"></div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="auth-email" type="email" placeholder="you@email.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="auth-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()"/>
+      </div>
+      <div class="form-group" id="promo-group" style="display:none">
+        <label class="form-label">Promo code <span style="color:var(--text3)">(optional)</span></label>
+        <input class="form-input" id="auth-promo" type="text" placeholder="Enter promo code..."/>
+      </div>
+      <button class="auth-submit" id="auth-submit-btn" onclick="submitAuth()">Log in</button>
+      <p style="text-align:center;font-size:0.8rem;color:var(--text3);margin-top:1.25rem;">
+        Don't have an account? <span style="color:var(--accent2);cursor:pointer;" onclick="setTab('signup')">Sign up free</span>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- App Page -->
+<div class="page" id="page-app">
+  <div class="hero">
+    <div class="hero-tag">AI-powered career tools</div>
+    <h1>Your resume,<br/><em>in your voice.</em></h1>
+    <p>Paste the job. Tell us your story. Get a tailored resume and cover letter in seconds — optimized for ATS.</p>
+  </div>
+
+  <div class="chat-wrapper">
+    <div class="chat-box">
+      <div class="chat-header">
+        <div class="chat-avatar">✦</div>
+        <div class="chat-header-text">
+          <strong>CareerCraft AI</strong>
+          <span>Online — ready to help</span>
+        </div>
+        <span class="usage-badge" id="usageBadge">5 left today</span>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="chat-input-area" id="chatInputArea" style="display:none">
+        <textarea class="chat-input" id="userInput" placeholder="Type your message..." rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+        <button class="send-btn" onclick="sendMessage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="upgrade-banner" id="upgradeBanner" style="display:none">
+      <p><strong>Unlock Voice Matching</strong> — Let CareerCraft write in your personal style. Available on Pro.</p>
+      <button class="upgrade-btn" onclick="upgradeToplan('pro')">Upgrade to Pro →</button>
+    </div>
+  </div>
+
+  <div class="plans">
+    <h2 class="plans-title">Simple pricing</h2>
+    <p class="plans-sub">Start free. Upgrade when you're ready.</p>
+    <div class="plans-grid">
+      <div class="plan-card">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">$0 <span>/month</span></div>
+        <ul class="plan-features">
+          <li>5 generations per day</li>
+          <li>Resume + cover letter</li>
+          <li>ATS keyword optimization</li>
+          <li class="locked">Voice matching</li>
+          <li class="locked">Multiple styles</li>
+          <li class="locked">LinkedIn bio</li>
+        </ul>
+        <button class="plan-cta outline">Current plan</button>
+      </div>
+      <div class="plan-card featured">
+        <div class="plan-tag">Most popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$10 <span>/month</span></div>
+        <ul class="plan-features">
+          <li>Unlimited generations</li>
+          <li>Resume + cover letter</li>
+          <li>ATS keyword optimization</li>
+          <li>Voice matching ✦</li>
+          <li class="locked">Multiple styles</li>
+          <li class="locked">LinkedIn bio</li>
+        </ul>
+        <button class="plan-cta filled" onclick="upgradeToplan('pro')">Upgrade to Pro →</button>
+      </div>
+      <div class="plan-card">
+        <div class="plan-name">Pro+</div>
+        <div class="plan-price">$20 <span>/month</span></div>
+        <ul class="plan-features">
+          <li>Everything in Pro</li>
+          <li>Multiple resume styles</li>
+          <li>LinkedIn bio generator</li>
+          <li>Voice matching ✦</li>
+          <li>Priority AI speed</li>
+          <li>Unlimited saved resumes</li>
+        </ul>
+        <button class="plan-cta outline" onclick="upgradeToplan('proplus')">Get Pro+ →</button>
+      </div>
+    </div>
+  </div>
+  <footer>Built with 💜 — <strong>CareerCraft</strong> © 2025. Your resume, your voice.</footer>
+</div>
+
+<!-- Limit modal -->
+<div class="modal-overlay" id="limitModal">
+  <div class="modal">
+    <div class="modal-icon">⚡</div>
+    <h3>Daily limit reached</h3>
+    <p>You've used all 5 free generations today. Upgrade to Pro for unlimited resumes and voice matching!</p>
+    <div class="modal-btns">
+      <button onclick="closeLimitModal()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text2);">Maybe later</button>
+      <button onclick="upgradeToplan('pro')" style="background:var(--accent);border:none;color:white;">Upgrade to Pro</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BACKEND = 'http://127.0.0.1:5000';
+  let currentUser = null;
+  let usageCount = 0;
+  let authMode = 'login';
+
+  function setTab(mode) {
+  authMode = mode;
+    document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+    document.getElementById('tab-signup').classList.toggle('active', mode === 'signup');
+    document.getElementById('auth-submit-btn').textContent = mode === 'login' ? 'Log in' : 'Create account';
+    document.getElementById('promo-group').style.display = mode === 'signup' ? 'block' : 'none';
+    clearAuthError();
+  }
+
+  function showAuthError(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  function clearAuthError() { document.getElementById('auth-error').classList.remove('show'); }
+
+  async function submitAuth() {
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    clearAuthError();
+    if (!email || !password) return showAuthError('Please fill in all fields.');
+    if (password.length < 6) return showAuthError('Password must be at least 6 characters.');
+    const btn = document.getElementById('auth-submit-btn');
+    btn.textContent = 'Please wait...';
+    btn.disabled = true;
+    try {
+      const res = await fetch(BACKEND + (authMode === 'login' ? '/login' : '/signup'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, promo_code: document.getElementById('auth-promo')?.value || '' })
+      });
+      const data = await res.json();
+      if (!res.ok) { showAuthError(data.error || 'Something went wrong.'); }
+      else { currentUser = data.user; localStorage.setItem('cc_user', JSON.stringify(currentUser)); enterApp(); }
+    } catch { showAuthError('Cannot connect to server. Make sure your backend is running!'); }
+    btn.disabled = false;
+    btn.textContent = authMode === 'login' ? 'Log in' : 'Create account';
+  }
+
+  function enterApp() {
+    showPage('app');
+    updateNav();
+    startChat();
+    if (currentUser?.plan === 'free') document.getElementById('upgradeBanner').style.display = 'flex';
+  }
+
+  function updateNav() {
+    document.getElementById('navRight').innerHTML = `
+      <span class="plan-badge">${currentUser.plan === 'free' ? 'Free Plan' : currentUser.plan === 'pro' ? 'Pro' : 'Pro+'}</span>
+      <span style="font-size:0.85rem;color:var(--text2)">${currentUser.email}</span>
+      <button class="nav-btn" onclick="logout()">Log out</button>`;
+  }
+
+  function logout() {
+    currentUser = null;
+    localStorage.removeItem('cc_user');
+    document.getElementById('navRight').innerHTML = `
+      <button class="nav-btn" onclick="showPage('auth'); setTab('login')">Log in</button>
+      <button class="nav-btn primary" onclick="showPage('auth'); setTab('signup')">Get started</button>`;
+    showPage('auth');
+  }
+
+  function goHome() { currentUser ? showPage('app') : showPage('auth'); }
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+  }
+
+  const state = { step: 0, jobDescription: '', experience: '', skills: '', education: '', tone: 'professional', voiceSample: null };
+  const steps = [
+    { bot: "Hey! 👋 I'm CareerCraft AI — let's build you something great.\n\nFirst, paste the job description you're applying for:", type: 'textarea', placeholder: 'Paste the full job description here...', key: 'jobDescription' },
+    { bot: "Love it! Now tell me about your most recent experience — job title and what you did:", type: 'textarea', placeholder: 'e.g. Software Developer at XYZ — built web apps, managed databases...', key: 'experience' },
+    { bot: "Nice! What are your top skills? (technical, tools, soft skills — anything relevant)", type: 'textarea', placeholder: 'e.g. Python, React, project management, communication...', key: 'skills' },
+    { bot: "Almost there! What's your highest level of education?", type: 'textarea', placeholder: 'e.g. BSc Computer Science, MIT, 2022', key: 'education' },
+    { bot: "What tone do you want?", type: 'options', options: ['Professional & formal', 'Modern & confident', 'Friendly & warm', 'Bold & punchy'], key: 'tone' },
+    { bot: "✦ One last thing — do you want me to write in YOUR voice?\n\nPaste a sample of your writing (old cover letter, LinkedIn bio, anything) and I'll match your style exactly.", type: 'voice', key: 'voiceSample' }
+  ];
+
+  function startChat() {
+    document.getElementById('chatInputArea').style.display = 'none';
+    Object.assign(state, { step: 0, jobDescription: '', experience: '', skills: '', education: '', tone: 'professional', voiceSample: null });
+    document.getElementById('messages').innerHTML = '';
+    usageCount = 0;
+    updateUsageBadge();
+    init();
+  }
+
+  function updateUsageBadge() {
+    if (!currentUser || currentUser.plan !== 'free') return;
+    const left = 5 - usageCount;
+    const badge = document.getElementById('usageBadge');
+    badge.textContent = `${left} left today`;
+    badge.className = 'usage-badge' + (left <= 1 ? ' danger' : left <= 3 ? ' warn' : '');
+  }
+
+  function addMessage(content, isUser = false) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = `msg ${isUser ? 'user' : 'bot'}`;
+    div.innerHTML = `<div class="msg-avatar">${isUser ? '👤' : '✦'}</div><div><div class="msg-bubble">${content.replace(/\n/g, '<br>')}</div></div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function addTyping() {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot'; div.id = 'typing';
+    div.innerHTML = `<div class="msg-avatar">✦</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function removeTyping() { document.getElementById('typing')?.remove(); }
+
+  function addTextarea(step) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+    div.innerHTML = `<div class="msg-avatar">✦</div><div style="flex:1"><div class="textarea-msg"><textarea id="stepInput" placeholder="${step.placeholder}"></textarea><br/><button class="textarea-submit" onclick="submitTextarea('${step.key}')">Continue →</button></div></div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    setTimeout(() => document.getElementById('stepInput')?.focus(), 100);
+  }
+  function addVoiceStep(step) {
+    const isPro = currentUser?.plan === 'pro' || currentUser?.plan === 'proplus';
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+
+    if (isPro) {
+      div.innerHTML = `
+        <div class="msg-avatar">✦</div>
+        <div style="flex:1">
+          <div class="textarea-msg">
+            <textarea id="stepInput" placeholder="Paste your writing sample here — old cover letter, LinkedIn bio, anything you wrote...">  </textarea><br/>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="textarea-submit" onclick="submitVoice()">Use my voice ✦</button>
+              <button class="textarea-submit" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text2);" onclick="skipVoice()">Skip</button>
+            </div>
+          </div>
+        </div>`;
+    } else {
+      div.innerHTML = `
+        <div class="msg-avatar">✦</div>
+        <div>
+          <div class="msg-bubble" style="background:linear-gradient(135deg,#7c6aff22,#a78bfa11);border:1px solid #7c6aff33;">
+            🔒 <strong>Voice matching is a Pro feature</strong><br/><br/>
+            Upgrade to Pro to make your resume sound exactly like you wrote it yourself.
+            <br/><br/>
+            <div style="display:flex;gap:8px;margin-top:4px">
+              <button class="quick-btn" style="background:var(--accent);color:white;border-color:transparent;" onclick="skipVoice()">Continue without it</button>
+              <button class="quick-btn" style="border-color:var(--accent);color:var(--accent2)">Upgrade to Pro →</button>
+            </div>
+          </div>
+        </div>`;
+    }
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function submitVoice() {
+    const input = document.getElementById('stepInput');
+    const val = input?.value.trim();
+    if (!val) return skipVoice();
+    state.voiceSample = val;
+    input.closest('.msg').remove();
+    addMessage("✦ Voice sample saved — I'll match your style!", true);
+    generateResume();
+  }
+
+  function skipVoice() {
+    document.getElementById('stepInput')?.closest('.msg')?.remove();
+    const voiceMsgs = document.querySelectorAll('.msg.bot');
+    voiceMsgs[voiceMsgs.length - 1]?.remove();
+    state.voiceSample = null;
+    generateResume();
+  }
+
+  function addOptions(step) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+    div.innerHTML = `<div class="msg-avatar">✦</div><div><div class="quick-options">${step.options.map(o => `<button class="quick-btn" onclick="selectOption('${o}','${step.key}')">${o}</button>`).join('')}</div></div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function submitTextarea(key) {
+    const input = document.getElementById('stepInput');
+    if (!input?.value.trim()) return;
+    const val = input.value.trim();
+    state[key] = val;
+    input.closest('.msg').remove();
+    addMessage(val, true);
+    nextStep();
+  }
+
+  function selectOption(val, key) {
+    state[key] = val;
+    document.querySelector('.quick-options')?.closest('.msg').remove();
+    addMessage(val, true);
+    nextStep();
+  }
+
+  async function nextStep() {
+    state.step++;
+    if (state.step < steps.length) {
+      await sleep(600); addTyping(); await sleep(800); removeTyping();
+      const step = steps[state.step];
+      addMessage(step.bot);
+      await sleep(300);
+      if (step.type === 'textarea') addTextarea(step);
+      if (step.type === 'options') addOptions(step);
+      if (step.type === 'voice') addVoiceStep(step);
+    } else {
+      await generateResume();
+    }
+  }
+
+  async function generateResume() {
+    addTyping();
+    try {
+      const res = await fetch(`${BACKEND}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: currentUser?.id,
+          plan: currentUser?.plan || 'free',
+          job_description: state.jobDescription,
+          experience: state.experience,
+          skills: state.skills,
+          education: state.education,
+          tone: state.tone,
+          voice_sample: state.voiceSample,
+          job_title: state.jobDescription.split('\n')[0].slice(0, 60)
+        })
+      });
+      const data = await res.json();
+      removeTyping();
+      if (res.status === 429) { document.getElementById('limitModal').classList.add('show'); return; }
+      usageCount++;
+      updateUsageBadge();
+      addMessage("Here's your tailored resume and cover letter! 🎉");
+      const msgs = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = 'msg bot';
+      div.innerHTML = `<div class="msg-avatar">✦</div><div style="flex:1"><div class="result-box">${data.result}</div><div class="result-actions"><button class="result-action-btn primary" onclick="copyResult()">Copy to clipboard</button><button class="result-action-btn" onclick="startChat()">Start over</button></div></div>`;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+      window._lastResult = data.result;
+      document.getElementById('chatInputArea').style.display = 'flex';
+    } catch { removeTyping(); addMessage("Oops! Something went wrong. Make sure your backend is running! 🔌"); }
+  }
+
+  function copyResult() {
+    navigator.clipboard.writeText(window._lastResult || '');
+    const btn = document.querySelector('.result-action-btn.primary');
+    if (btn) { btn.textContent = 'Copied! ✓'; setTimeout(() => btn.textContent = 'Copy to clipboard', 2000); }
+  }
+
+  function closeLimitModal() { document.getElementById('limitModal').classList.remove('show'); }
+  async function upgradeToplan(plan) {
+    try {
+      const res = await fetch(`${BACKEND}/create-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: plan,
+          user_id: currentUser?.id,
+          email: currentUser?.email
+        })
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert('Something went wrong. Please try again!');
+      }
+    } catch {
+      alert('Cannot connect to server!');
+    }
+  }
+  function checkUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') && currentUser) {
+      const plan = params.get('plan');
+        currentUser.plan = plan;
+      localStorage.setItem('cc_user', JSON.stringify(currentUser));
+      updateNav();
+      document.getElementById('upgradeBanner').style.display = 'none';
+      addMessage(`🎉 Welcome to ${plan === 'pro' ? 'Pro' : 'Pro+'}! Voice matching and all premium features are now unlocked!`);
+      window.history.replaceState({}, '', 'index.html');
+    }
+    if (params.get('canceled')) {
+      window.history.replaceState({}, '', 'index.html');
+    }
+  }
+  function sendMessage() {
+    const input = document.getElementById('userInput');
+    const val = input.value.trim();
+    if (!val) return;
+    addMessage(val, true);
+    input.value = ''; input.style.height = 'auto';
+    addTyping();
+    setTimeout(() => { removeTyping(); addMessage("Use the text boxes above to fill in your info — I'll guide you through each step! 😊"); }, 800);
+  }
+
+  function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+  function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 140) + 'px'; }
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function init() {
+    await sleep(400); addTyping(); await sleep(1000); removeTyping();
+    addMessage(steps[0].bot);
+    await sleep(300);
+    addTextarea(steps[0]);
+  }
+
+  // Auto login from saved session
+  const saved = localStorage.getItem('cc_user');
+  if (saved) { 
+    currentUser = JSON.parse(saved); 
+    enterApp();
+    checkUrlParams();
+  }
+</script>
+</body>
+</html>
