@@ -390,11 +390,24 @@
     btn.textContent = authMode === 'login' ? 'Log in' : 'Create account';
   }
 
-  function enterApp() {
+  async function enterApp() {
     showPage('app');
     updateNav();
     startChat();
-    if (currentUser?.plan === 'free') document.getElementById('upgradeBanner').style.display = 'flex';
+    if (currentUser?.plan === 'free') {
+      document.getElementById('upgradeBanner').style.display = 'flex';
+      // Fetch real usage count
+      try {
+        const res = await fetch(`${BACKEND}/usage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: currentUser.id })
+        });
+        const data = await res.json();
+        usageCount = data.count;
+        updateUsageBadge();
+      } catch {}
+    }
   }
 
   function updateNav() {
