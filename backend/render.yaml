@@ -1,0 +1,6 @@
+web:
+  - type: web
+    name: careercraft-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
