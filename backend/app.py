@@ -243,6 +243,15 @@ def chat_with_resume():
     )
     
     return jsonify({"result": chat.choices[0].message.content})
-    
+
+@app.route("/usage", methods=["POST"])
+def get_usage():
+    data = request.json
+    user_id = data.get("user_id")
+    today = str(date.today())
+    usage = db_get("usage", f"user_id=eq.{user_id}&date=eq.{today}&select=count")
+    count = usage[0]["count"] if usage else 0
+    return jsonify({"count": count})
+
 if __name__ == "__main__":
     app.run(debug=True)
