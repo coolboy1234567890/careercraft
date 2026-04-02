@@ -217,5 +217,32 @@ def webhook():
 
     return jsonify({"status": "ok"})
 
+@app.route("/chat", methods=["POST"])
+def chat_with_resume():
+    data = request.json
+    message = data.get("message", "")
+    resume = data.get("resume", "")
+    
+    prompt = f"""
+    You are a professional resume coach. The user has just received this resume and cover letter:
+    
+    ---
+    {resume}
+    ---
+    
+    The user is now asking you to help them refine it. Respond helpfully to their request.
+    If they ask you to change something, output the FULL updated resume and cover letter.
+    If they ask a question, just answer it conversationally.
+    
+    User message: {message}
+    """
+    
+    chat = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama-3.3-70b-versatile",
+    )
+    
+    return jsonify({"result": chat.choices[0].message.content})
+    
 if __name__ == "__main__":
     app.run(debug=True)
