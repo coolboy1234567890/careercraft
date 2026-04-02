@@ -649,17 +649,33 @@
       window.history.replaceState({}, '', 'index.html');
     }
   }
-  function sendMessage() {
+  async function sendMessage() {
     const input = document.getElementById('userInput');
     const val = input.value.trim();
     if (!val) return;
     addMessage(val, true);
     input.value = ''; input.style.height = 'auto';
     addTyping();
-    setTimeout(() => {
+    
+    try {
+      const res = await fetch(`${BACKEND}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: val,
+          resume: window._lastResult || ''
+        })
+      });
+      const data = await res.json();
       removeTyping();
-      addMessage("Glad I could help! 😊 Hit **Start over** to generate another resume, or scroll down to upgrade your plan for unlimited generations and voice matching!");
-    }, 800);
+      addMessage(data.result);
+      if (data.result.length > 500) {
+        window._lastResult = data.result;
+      }
+    } catch {
+      removeTyping();
+      addMessage("Oops! Something went wrong. Try again! 🔌");
+    }
   }
 
   function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
