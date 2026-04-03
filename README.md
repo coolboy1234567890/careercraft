@@ -7,7 +7,7 @@
 ![AI Powered](https://img.shields.io/badge/AI-Groq%20%2F%20Llama-purple)
 
 ## 🌐 Live Demo
-👉 [your-vercel-url.vercel.app](https://your-vercel-url.vercel.app)
+👉 https://careercraft-rouge.vercel.app/
 
 ## ✨ Features
 - 💬 Conversational chat interface
