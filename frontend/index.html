@@ -251,6 +251,31 @@
   .kw-match { padding:3px 10px; border-radius:999px; font-size:0.75rem; background:#34d39922; color:var(--green); border:1px solid #34d39944; }
   .kw-miss { padding:3px 10px; border-radius:999px; font-size:0.75rem; background:#f8717122; color:var(--red); border:1px solid #f8717144; }
   .score-tip { font-size:0.82rem; color:var(--text2); background:var(--accent-glow); border:1px solid #7c6aff33; border-radius:8px; padding:8px 12px; }
+
+  /* Editor page */
+  .editor-wrap { max-width:1100px; margin:0 auto; padding:2rem 1.5rem; width:100%; }
+  .editor-title { font-family:'Syne',sans-serif; font-weight:800; font-size:1.8rem; letter-spacing:-0.02em; margin-bottom:0.25rem; }
+  .editor-sub { color:var(--text2); font-size:0.9rem; margin-bottom:2rem; }
+  .editor-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
+  @media(max-width:700px) { .editor-grid { grid-template-columns:1fr; } }
+  .editor-panel { background:var(--surface); border:1px solid var(--border2); border-radius:16px; overflow:hidden; }
+  .editor-panel-header { background:var(--surface2); padding:1rem 1.5rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .editor-panel-header h3 { font-family:'Syne',sans-serif; font-weight:700; font-size:0.95rem; }
+  .editor-panel-body { padding:1.5rem; display:flex; flex-direction:column; gap:1rem; }
+  .editor-textarea { width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:10px; padding:0.75rem; color:var(--text); font-family:'DM Sans',sans-serif; font-size:0.85rem; resize:vertical; outline:none; min-height:200px; transition:border-color 0.2s; line-height:1.6; }
+  .editor-textarea:focus { border-color:var(--accent); }
+  .editor-textarea::placeholder { color:var(--text3); }
+  .editor-btn { padding:10px 20px; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:0.875rem; cursor:pointer; transition:all 0.2s; font-weight:500; }
+  .editor-btn.primary { background:var(--accent); border:none; color:white; }
+  .editor-btn.primary:hover { background:#9580ff; }
+  .editor-btn.outline { background:transparent; border:1px solid var(--border2); color:var(--text2); }
+  .editor-btn.outline:hover { border-color:var(--accent); color:var(--accent2); }
+  .editor-result { background:var(--bg); border:1px solid var(--border2); border-radius:10px; padding:1rem; font-size:0.85rem; line-height:1.7; color:var(--text2); white-space:pre-wrap; min-height:200px; }
+  .linkedin-section { background:var(--surface); border:1px solid var(--border2); border-radius:16px; padding:1.5rem; margin-top:1.5rem; }
+  .linkedin-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+  .linkedin-header h3 { font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; }
+  .linkedin-badge { font-size:0.7rem; padding:3px 10px; border-radius:999px; background:var(--accent-glow); color:var(--accent2); border:1px solid #7c6aff44; }
+  .editor-suggestion-btns { display:flex; flex-wrap:wrap; gap:8px; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -379,6 +404,64 @@
   </div>
   <footer>Built with 💜 — <strong>CareerCraft</strong> © 2025. Your resume, your voice.</footer>
 </div>
+
+<!-- Editor Page -->
+<div class="page" id="page-editor">
+  <div class="editor-wrap">
+    <h2 class="editor-title">Resume Editor</h2>
+    <p class="editor-sub">Paste your existing resume, get AI suggestions, and edit manually.</p>
+
+    <div class="editor-grid">
+      <!-- Left panel: Input -->
+      <div class="editor-panel">
+        <div class="editor-panel-header">
+          <h3>Your Resume</h3>
+          <button class="editor-btn outline" onclick="clearEditor()">Clear</button>
+        </div>
+        <div class="editor-panel-body">
+          <textarea class="editor-textarea" id="editorInput" placeholder="Paste your existing resume here..."></textarea>
+          <textarea class="editor-textarea" id="editorJobInput" placeholder="Optional: paste the job description to tailor it..." style="min-height:100px"></textarea>
+          <p style="font-size:0.8rem;color:var(--text3)">AI suggestions:</p>
+          <div class="editor-suggestion-btns">
+            <button class="quick-btn" onclick="aiImprove('Make it more professional and impactful')">More professional</button>
+            <button class="quick-btn" onclick="aiImprove('Make it more concise and punchy')">More concise</button>
+            <button class="quick-btn" onclick="aiImprove('Add stronger action verbs and metrics')">Stronger language</button>
+            <button class="quick-btn" onclick="aiImprove('Tailor it to the job description')">Tailor to job</button>
+            <button class="quick-btn" onclick="aiImprove('Make it sound more human and natural')">More human</button>
+          </div>
+          <textarea class="editor-textarea" id="editorCustomInstruction" placeholder="Or type a custom instruction... e.g. 'Add more focus on leadership'" style="min-height:60px"></textarea>
+          <button class="editor-btn primary" onclick="aiImproveCustom()">Apply AI suggestion →</button>
+        </div>
+      </div>
+
+      <!-- Right panel: Output / manual editor -->
+      <div class="editor-panel">
+        <div class="editor-panel-header">
+          <h3>Improved Resume</h3>
+          <div style="display:flex;gap:8px">
+            <button class="editor-btn outline" onclick="copyEditorResult()">Copy</button>
+            <button class="editor-btn primary" onclick="previewEditorResult()">Preview & PDF</button>
+          </div>
+        </div>
+        <div class="editor-panel-body">
+          <textarea class="editor-textarea" id="editorOutput" placeholder="Your improved resume will appear here — you can also edit it manually!" style="min-height:400px"></textarea>
+          <div id="editorScore"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LinkedIn bio section (Pro+ only) -->
+    <div class="linkedin-section" id="linkedinSection">
+      <div class="linkedin-header">
+        <h3>LinkedIn Bio Generator</h3>
+        <span class="linkedin-badge">Pro+ exclusive</span>
+      </div>
+      <div id="linkedinContent">
+        <!-- filled by JS based on plan -->
+      </div>
+    </div>
+  </div>
+</div>
 <!-- Resume preview modal -->
 <div class="preview-overlay" id="previewOverlay">
   <div class="preview-modal">
@@ -472,11 +555,13 @@
         updateUsageBadge();
       } catch {}
     }
+    initLinkedinSection();
   }
 
   function updateNav() {
     document.getElementById('navRight').innerHTML = `
       <span class="plan-badge">${currentUser.plan === 'free' ? 'Free Plan' : currentUser.plan === 'pro' ? 'Pro' : 'Pro+'}</span>
+      <button class="nav-btn" onclick="showPage('editor')">Resume Editor</button>
       <span style="font-size:0.85rem;color:var(--text2)">${currentUser.email}</span>
       <button class="nav-btn" onclick="logout()">Log out</button>`;
   }
@@ -947,6 +1032,136 @@
       msgs.appendChild(div);
       msgs.scrollTop = msgs.scrollHeight;
     } catch {}
+  }
+
+  function clearEditor() {
+    document.getElementById('editorInput').value = '';
+    document.getElementById('editorOutput').value = '';
+    document.getElementById('editorJobInput').value = '';
+    document.getElementById('editorScore').innerHTML = '';
+  }
+
+  async function aiImprove(instruction) {
+    const resume = document.getElementById('editorInput').value.trim();
+    if (!resume) return alert('Paste your resume first!');
+    const job = document.getElementById('editorJobInput').value.trim();
+    const output = document.getElementById('editorOutput');
+    output.value = 'Improving your resume...';
+    try {
+      const res = await fetch(`${BACKEND}/improve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume, job_description: job, instruction })
+      });
+      const data = await res.json();
+      output.value = data.result;
+      if (job) getEditorScore(data.result, job);
+    } catch { output.value = 'Something went wrong. Try again!'; }
+  }
+
+  async function aiImproveCustom() {
+    const instruction = document.getElementById('editorCustomInstruction').value.trim();
+    if (!instruction) return alert('Type an instruction first!');
+    await aiImprove(instruction);
+  }
+
+  async function getEditorScore(resume, job) {
+    try {
+      const res = await fetch(`${BACKEND}/score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume, job_description: job })
+      });
+      const data = await res.json();
+      const score = data.score || 0;
+      const color = score >= 75 ? 'high' : score >= 50 ? 'mid' : 'low';
+      const barColor = score >= 75 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171';
+      document.getElementById('editorScore').innerHTML = `
+        <div class="score-card" style="margin-top:10px">
+          <div class="score-header">
+            <span class="score-title">ATS Match Score</span>
+            <span class="score-number ${color}">${score}%</span>
+          </div>
+          <div class="score-bar-bg">
+            <div class="score-bar-fill" style="width:${score}%;background:${barColor}"></div>
+          </div>
+          ${data.tip ? `<div class="score-tip">💡 ${data.tip}</div>` : ''}
+        </div>`;
+    } catch {}
+  }
+
+  function copyEditorResult() {
+    const val = document.getElementById('editorOutput').value;
+    navigator.clipboard.writeText(val);
+    alert('Copied!');
+  }
+
+  function previewEditorResult() {
+    const val = document.getElementById('editorOutput').value;
+    if (!val.trim()) return alert('No resume to preview yet!');
+    window._lastResult = val;
+    openPreview();
+  }
+
+  function initLinkedinSection() {
+    const isProPlus = currentUser?.plan === 'proplus';
+    const content = document.getElementById('linkedinContent');
+    if (isProPlus) {
+      content.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <textarea class="editor-textarea" id="liExperience" placeholder="Your experience..." style="min-height:100px"></textarea>
+            <textarea class="editor-textarea" id="liSkills" placeholder="Your top skills..." style="min-height:80px"></textarea>
+            <select class="editor-textarea" id="liTone" style="min-height:unset;padding:0.75rem">
+              <option value="professional">Professional & formal</option>
+              <option value="modern">Modern & confident</option>
+              <option value="friendly">Friendly & warm</option>
+              <option value="bold">Bold & punchy</option>
+            </select>
+            <textarea class="editor-textarea" id="liVoice" placeholder="Optional: paste a writing sample for voice matching..." style="min-height:80px"></textarea>
+            <button class="editor-btn primary" onclick="generateLinkedin()">Generate LinkedIn Bio →</button>
+          </div>
+          <div>
+            <textarea class="editor-textarea" id="liOutput" placeholder="Your LinkedIn bio will appear here..." style="min-height:300px"></textarea>
+            <button class="editor-btn outline" style="margin-top:8px;width:100%" onclick="copyLinkedin()">Copy bio</button>
+          </div>
+        </div>`;
+    } else {
+      content.innerHTML = `
+        <div style="text-align:center;padding:2rem;color:var(--text2)">
+          <p style="margin-bottom:1rem">🔒 LinkedIn bio generation is exclusive to <strong style="color:var(--accent2)">Pro+</strong></p>
+          <button class="editor-btn primary" onclick="upgradeToplan('proplus')">Upgrade to Pro+ →</button>
+        </div>`;
+    }
+  }
+
+  async function generateLinkedin() {
+    const experience = document.getElementById('liExperience').value.trim();
+    const skills = document.getElementById('liSkills').value.trim();
+    const tone = document.getElementById('liTone').value;
+    const voice = document.getElementById('liVoice').value.trim();
+    if (!experience) return alert('Add your experience first!');
+    const output = document.getElementById('liOutput');
+    output.value = 'Generating your LinkedIn bio...';
+    try {
+      const res = await fetch(`${BACKEND}/linkedin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: currentUser?.plan,
+          experience, skills, tone,
+          voice_sample: voice
+        })
+      });
+      const data = await res.json();
+      output.value = data.result || data.error;
+    } catch { output.value = 'Something went wrong. Try again!'; }
+  }
+
+  function copyLinkedin() {
+    const val = document.getElementById('liOutput')?.value;
+    if (val) navigator.clipboard.writeText(val);
+    alert('Copied!');
   }
 </script>
 </body>
