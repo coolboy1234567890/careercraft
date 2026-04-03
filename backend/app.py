@@ -296,5 +296,86 @@ def score_resume():
         result = {"score": 75, "matched_keywords": [], "missing_keywords": [], "tip": "Review your resume against the job description."}
 
     return jsonify(result)
+
+
+@app.route("/linkedin", methods=["POST"])
+def linkedin_bio():
+    data = request.json
+    plan = data.get("plan", "free")
+
+    if plan != "proplus":
+        return jsonify({"error": "Pro+ required"}), 403
+
+    experience = data.get("experience", "")
+    skills = data.get("skills", "")
+    tone = data.get("tone", "professional")
+    voice_sample = data.get("voice_sample", "")
+
+    voice_instruction = f"""
+    Match the writing style of this sample:
+    ---
+    {voice_sample}
+    ---
+    """ if voice_sample else ""
+
+    prompt = f"""
+    You are a LinkedIn profile expert.
+
+    Write a compelling LinkedIn About section for this person:
+    - Experience: {experience}
+    - Skills: {skills}
+    - Tone: {tone}
+
+    {voice_instruction}
+
+    Rules:
+    - Maximum 300 words
+    - First line must be a hook that grabs attention
+    - Write in first person
+    - Sound human, not like an AI
+    - End with what they are looking for or open to
+    - Do NOT use hashtags
+    - Output ONLY the bio text, nothing else
+    """
+
+    chat = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama-3.3-70b-versatile",
+    )
+
+    return jsonify({"result": chat.choices[0].message.content})
+
+
+@app.route("/improve", methods=["POST"])
+def improve_resume():
+    data = request.json
+    resume = data.get("resume", "")
+    job_description = data.get("job_description", "")
+    instruction = data.get("instruction", "Improve this resume")
+
+    prompt = f"""
+    You are an expert resume coach.
+
+    {"Here is the target job description:" + job_description if job_description else ""}
+
+    Here is the resume to improve:
+    {resume}
+
+    User instruction: {instruction}
+
+    Rules:
+    - Output the FULL improved resume
+    - Keep the same structure but improve the content
+    - If a job description is provided, tailor keywords to match it
+    - Sound human and natural
+    - Do NOT explain what you changed, just output the resume
+    """
+
+    chat = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama-3.3-70b-versatile",
+    )
+
+    return jsonify({"result": chat.choices[0].message.content})
 if __name__ == "__main__":
     app.run(debug=True)
