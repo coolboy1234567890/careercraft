@@ -237,6 +237,20 @@
   .cover-header h3 { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; color:#a78bfa; }
   .cover-body { padding:2rem 2.5rem; }
   .cover-body p { font-size:0.875rem; line-height:1.8; color:#3d3d5c; margin-bottom:1rem; }
+
+  .score-card { background:var(--surface2); border:1px solid var(--border2); border-radius:14px; padding:1.25rem; margin-top:10px; }
+  .score-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+  .score-title { font-family:'Syne',sans-serif; font-weight:700; font-size:0.95rem; }
+  .score-number { font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; }
+  .score-number.high { color:var(--green); }
+  .score-number.mid { color:var(--gold); }
+  .score-number.low { color:var(--red); }
+  .score-bar-bg { background:var(--border2); border-radius:999px; height:8px; margin-bottom:1rem; overflow:hidden; }
+  .score-bar-fill { height:100%; border-radius:999px; transition:width 1s ease; }
+  .score-keywords { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:0.75rem; }
+  .kw-match { padding:3px 10px; border-radius:999px; font-size:0.75rem; background:#34d39922; color:var(--green); border:1px solid #34d39944; }
+  .kw-miss { padding:3px 10px; border-radius:999px; font-size:0.75rem; background:#f8717122; color:var(--red); border:1px solid #f8717144; }
+  .score-tip { font-size:0.82rem; color:var(--text2); background:var(--accent-glow); border:1px solid #7c6aff33; border-radius:8px; padding:8px 12px; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -665,6 +679,7 @@
       msgs.appendChild(div);
       msgs.scrollTop = msgs.scrollHeight;
       window._lastResult = data.result;
+      getMatchScore();
       document.getElementById('chatInputArea').style.display = 'flex';
     } catch { removeTyping(); addMessage("Oops! Something went wrong. Make sure your backend is running! 🔌"); }
   }
@@ -885,6 +900,53 @@
   
     btn.textContent = 'Download PDF';
     btn.disabled = false;
+  }
+
+  async function getMatchScore() {
+    try {
+      const res = await fetch(`${BACKEND}/score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          job_description: state.jobDescription,
+          resume: window._lastResult || ''
+        })
+      });
+      const data = await res.json();
+      const score = data.score || 0;
+      const color = score >= 75 ? 'high' : score >= 50 ? 'mid' : 'low';
+      const barColor = score >= 75 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171';
+  
+      const msgs = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = 'msg bot';
+      div.innerHTML = `
+        <div class="msg-avatar">✦</div>
+        <div style="flex:1">
+          <div class="score-card">
+            <div class="score-header">
+              <span class="score-title">ATS Match Score</span>
+              <span class="score-number ${color}">${score}%</span>
+            </div>
+            <div class="score-bar-bg">
+              <div class="score-bar-fill" style="width:${score}%;background:${barColor}"></div>
+            </div>
+            ${data.matched_keywords?.length ? `
+              <p style="font-size:0.75rem;color:var(--text3);margin-bottom:6px">MATCHED KEYWORDS</p>
+              <div class="score-keywords">
+                ${data.matched_keywords.map(k => `<span class="kw-match">✓ ${k}</span>`).join('')}
+              </div>` : ''}
+            ${data.missing_keywords?.length ? `
+              <p style="font-size:0.75rem;color:var(--text3);margin-bottom:6px;margin-top:8px">MISSING KEYWORDS</p>
+              <div class="score-keywords">
+                ${data.missing_keywords.map(k => `<span class="kw-miss">✕ ${k}</span>`).join('')}
+              </div>` : ''}
+            ${data.tip ? `<div class="score-tip" style="margin-top:10px">💡 ${data.tip}</div>` : ''}
+          </div>
+        </div>`;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+    } catch {}
   }
 </script>
 </body>
