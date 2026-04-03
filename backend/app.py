@@ -253,5 +253,48 @@ def get_usage():
     count = usage[0]["count"] if usage else 0
     return jsonify({"count": count})
 
+@app.route("/score", methods=["POST"])
+def score_resume():
+    data = request.json
+    job_description = data.get("job_description", "")
+    resume = data.get("resume", "")
+
+    prompt = f"""
+    You are an ATS (Applicant Tracking System) expert.
+    
+    Analyze this resume against the job description and respond ONLY with a JSON object like this:
+    {{
+      "score": 82,
+      "matched_keywords": ["Python", "React", "Agile"],
+      "missing_keywords": ["Docker", "Kubernetes"],
+      "tip": "Add Docker experience to significantly boost your match score."
+    }}
+
+    Job Description:
+    {job_description}
+
+    Resume:
+    {resume}
+
+    Rules:
+    - Score between 0-100
+    - matched_keywords: important keywords found in both
+    - missing_keywords: important keywords in job but missing from resume
+    - tip: one specific actionable tip
+    - Respond with ONLY the JSON, no extra text
+    """
+
+    chat = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama-3.3-70b-versatile",
+    )
+
+    try:
+        import json
+        result = json.loads(chat.choices[0].message.content)
+    except:
+        result = {"score": 75, "matched_keywords": [], "missing_keywords": [], "tip": "Review your resume against the job description."}
+
+    return jsonify(result)
 if __name__ == "__main__":
     app.run(debug=True)
