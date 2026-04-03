@@ -204,7 +204,42 @@
 
   footer { text-align: center; padding: 2rem; color: var(--text3); font-size: 0.8rem; border-top: 1px solid var(--border); position: relative; z-index: 1; }
   footer strong { color: var(--text2); }
+  /* Resume preview modal */
+  .preview-overlay { display:none; position:fixed; inset:0; background:#00000090; backdrop-filter:blur(6px); z-index:300; align-items:center; justify-content:center; padding:2rem; }
+  .preview-overlay.show { display:flex; }
+  .preview-modal { background:var(--surface); border:1px solid var(--border2); border-radius:20px; width:100%; max-width:860px; max-height:90vh; overflow:hidden; display:flex; flex-direction:column; }
+  .preview-toolbar { padding:1rem 1.5rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--surface2); flex-shrink:0; }
+  .preview-toolbar h3 { font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; }
+  .preview-toolbar-btns { display:flex; gap:8px; }
+  .preview-scroll { overflow-y:auto; flex:1; padding:2rem; }
+  .preview-scroll::-webkit-scrollbar { width:4px; }
+  .preview-scroll::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
+
+  /* Resume document */
+  .resume-doc { background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 8px 32px #00000030; max-width:720px; margin:0 auto; font-family:'DM Sans',sans-serif; color:#1a1a2e; }
+  .resume-header { background:linear-gradient(135deg,#1a1a2e,#2d2b5e); color:white; padding:2.5rem; }
+  .resume-name { font-family:'Syne',sans-serif; font-size:1.8rem; font-weight:800; letter-spacing:-0.02em; margin-bottom:0.25rem; }
+  .resume-headline { font-size:0.85rem; color:#a78bfa; font-weight:500; margin-bottom:1rem; }
+  .resume-contact { font-size:0.8rem; color:#9990cc; }
+  .resume-body { padding:2rem; }
+  .resume-section { margin-bottom:1.5rem; }
+  .resume-section-title { font-family:'Syne',sans-serif; font-size:0.75rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#7c6aff; border-bottom:2px solid #7c6aff22; padding-bottom:6px; margin-bottom:0.75rem; }
+  .resume-section p { font-size:0.85rem; line-height:1.7; color:#3d3d5c; margin-bottom:0.4rem; }
+  .resume-section ul { padding-left:1.25rem; }
+  .resume-section ul li { font-size:0.85rem; line-height:1.7; color:#3d3d5c; margin-bottom:0.2rem; }
+  .resume-job { margin-bottom:1rem; }
+  .resume-job-title { font-weight:600; font-size:0.9rem; color:#1a1a2e; }
+  .resume-job-meta { font-size:0.78rem; color:#7c6aff; margin-bottom:0.4rem; }
+
+  /* Cover letter doc */
+  .cover-doc { background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 8px 32px #00000030; max-width:720px; margin:2rem auto 0; font-family:'DM Sans',sans-serif; color:#1a1a2e; }
+  .cover-header { background:linear-gradient(135deg,#1a1a2e,#2d2b5e); color:white; padding:2rem 2.5rem; }
+  .cover-header h3 { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; color:#a78bfa; }
+  .cover-body { padding:2rem 2.5rem; }
+  .cover-body p { font-size:0.875rem; line-height:1.8; color:#3d3d5c; margin-bottom:1rem; }
 </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -330,7 +365,21 @@
   </div>
   <footer>Built with 💜 — <strong>CareerCraft</strong> © 2025. Your resume, your voice.</footer>
 </div>
-
+<!-- Resume preview modal -->
+<div class="preview-overlay" id="previewOverlay">
+  <div class="preview-modal">
+    <div class="preview-toolbar">
+      <h3>Resume Preview</h3>
+      <div class="preview-toolbar-btns">
+        <button class="result-action-btn" onclick="downloadPDF()">Download PDF</button>
+        <button class="result-action-btn" onclick="closePreview()">Close ✕</button>
+      </div>
+    </div>
+    <div class="preview-scroll" id="previewScroll">
+      <div id="resumePreviewContent"></div>
+    </div>
+  </div>
+</div>
 <!-- Limit modal -->
 <div class="modal-overlay" id="limitModal">
   <div class="modal">
@@ -612,7 +661,7 @@
       const msgs = document.getElementById('messages');
       const div = document.createElement('div');
       div.className = 'msg bot';
-      div.innerHTML = `<div class="msg-avatar">✦</div><div style="flex:1"><div class="result-box">${data.result}</div><div class="result-actions"><button class="result-action-btn primary" onclick="copyResult()">Copy to clipboard</button><button class="result-action-btn" onclick="startChat()">Start over</button></div></div>`;
+      div.innerHTML = `<div class="msg-avatar">✦</div><div style="flex:1"><div class="result-box">${data.result}</div><div class="result-actions"><button class="result-action-btn primary" onclick="openPreview()">Preview & Download PDF</button><button class="result-action-btn" onclick="copyResult()">Copy text</button><button class="result-action-btn" onclick="startChat()">Start over</button></div></div>`;
       msgs.appendChild(div);
       msgs.scrollTop = msgs.scrollHeight;
       window._lastResult = data.result;
@@ -714,6 +763,128 @@
     currentUser = JSON.parse(saved); 
     enterApp();
     checkUrlParams();
+  }
+
+  function openPreview() {
+    const raw = window._lastResult || '';
+    document.getElementById('resumePreviewContent').innerHTML = buildPreviewHTML(raw);
+    document.getElementById('previewOverlay').classList.add('show');
+  }
+  
+  function closePreview() {
+    document.getElementById('previewOverlay').classList.remove('show');
+  }
+  
+  function buildPreviewHTML(raw) {
+    const lines = raw.split('\n');
+    let resumeLines = [];
+    let coverLines = [];
+    let inCover = false;
+  
+    for (const line of lines) {
+      if (line.toLowerCase().includes('cover letter')) { inCover = true; }
+      if (inCover) { coverLines.push(line); }
+      else { resumeLines.push(line); }
+    }
+  
+    const name = resumeLines.find(l => l.match(/\*\*name\*\*/i))?.replace(/\*\*/g,'').replace(/name:/i,'').trim()
+      || resumeLines[0]?.replace(/\*/g,'').trim() || 'Your Name';
+  
+    const headline = resumeLines.find(l => l.match(/headline/i))?.replace(/\*\*/g,'').replace(/headline:/i,'').trim() || '';
+  
+    const cleanLine = l => l.replace(/\*\*/g,'').replace(/^\*\s?/,'').trim();
+  
+    const resumeHTML = `
+      <div class="resume-doc" id="resumeDoc">
+        <div class="resume-header">
+          <div class="resume-name">${name}</div>
+          ${headline ? `<div class="resume-headline">${headline}</div>` : ''}
+          <div class="resume-contact">Contact information available upon request</div>
+        </div>
+        <div class="resume-body">
+          ${parseResumeBody(resumeLines)}
+        </div>
+      </div>`;
+  
+    const coverHTML = `
+      <div class="cover-doc" id="coverDoc">
+        <div class="cover-header"><h3>Cover Letter</h3></div>
+        <div class="cover-body">
+          ${coverLines.filter(l => l.trim() && !l.toLowerCase().includes('cover letter')).map(l =>
+            `<p>${l.replace(/\*\*/g,'').trim()}</p>`
+          ).join('')}
+        </div>
+      </div>`;
+  
+    return resumeHTML + coverHTML;
+  }
+  
+  function parseResumeBody(lines) {
+    let html = '';
+    let currentSection = '';
+    let currentContent = [];
+  
+    const sectionKeywords = ['experience','skills','education','about','summary','competencies','strengths','certifications','awards','objective'];
+  
+    const flushSection = () => {
+      if (!currentSection) return;
+      html += `<div class="resume-section">
+        <div class="resume-section-title">${currentSection}</div>
+        ${currentContent.map(l => {
+          const clean = l.replace(/\*\*/g,'').replace(/^\*\s?/,'').trim();
+          if (!clean) return '';
+          if (l.startsWith('*') || l.startsWith('-')) return `<ul><li>${clean}</li></ul>`;
+          return `<p>${clean}</p>`;
+        }).join('')}
+      </div>`;
+      currentContent = [];
+    };
+  
+    for (const line of lines) {
+      const clean = line.replace(/\*\*/g,'').trim().toLowerCase();
+      const isSection = sectionKeywords.some(k => clean.includes(k)) && line.includes('**');
+      if (isSection) {
+        flushSection();
+        currentSection = line.replace(/\*\*/g,'').trim();
+      } else if (currentSection) {
+        currentContent.push(line);
+      }
+    }
+    flushSection();
+    return html;
+  }
+  
+  async function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const btn = document.querySelector('.preview-toolbar-btns button');
+    btn.textContent = 'Generating...';
+    btn.disabled = true;
+  
+    try {
+      const resumeEl = document.getElementById('resumeDoc');
+      const coverEl = document.getElementById('coverDoc');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+  
+      const resumeCanvas = await html2canvas(resumeEl, { scale: 2, useCORS: true });
+      const resumeImg = resumeCanvas.toDataURL('image/png');
+      const resumeH = (resumeCanvas.height * pageW) / resumeCanvas.width;
+      pdf.addImage(resumeImg, 'PNG', 0, 0, pageW, resumeH);
+  
+      pdf.addPage();
+  
+      const coverCanvas = await html2canvas(coverEl, { scale: 2, useCORS: true });
+      const coverImg = coverCanvas.toDataURL('image/png');
+      const coverH = (coverCanvas.height * pageW) / coverCanvas.width;
+      pdf.addImage(coverImg, 'PNG', 0, 0, pageW, coverH);
+  
+      pdf.save('CareerCraft-Resume.pdf');
+    } catch(e) {
+      alert('PDF generation failed. Try again!');
+    }
+  
+    btn.textContent = 'Download PDF';
+    btn.disabled = false;
   }
 </script>
 </body>
