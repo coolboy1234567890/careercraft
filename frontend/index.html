@@ -276,6 +276,62 @@
   .linkedin-header h3 { font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; }
   .linkedin-badge { font-size:0.7rem; padding:3px 10px; border-radius:999px; background:var(--accent-glow); color:var(--accent2); border:1px solid #7c6aff44; }
   .editor-suggestion-btns { display:flex; flex-wrap:wrap; gap:8px; }
+
+  /* ── Mobile responsive ── */
+  @media (max-width: 768px) {
+    nav { padding: 0 1rem; }
+    .nav-right { gap: 0.5rem; }
+    .nav-right span { display: none; }
+    .nav-btn { padding: 6px 12px; font-size: 0.8rem; }
+    .plan-badge { display: none; }
+
+    .hero { padding: 2rem 1rem 1.5rem; }
+    .hero h1 { font-size: 1.8rem; }
+    .hero p { font-size: 0.875rem; }
+
+    .chat-wrapper { padding: 0 1rem; }
+    .chat-header { padding: 0.75rem 1rem; }
+    .messages { padding: 1rem; max-height: 400px; }
+    .msg-bubble { max-width: 90%; font-size: 0.85rem; }
+    .chat-input-area { padding: 0.75rem 1rem; }
+
+    .plans-grid { grid-template-columns: 1fr; }
+    .plan-card { margin-bottom: 0.5rem; }
+
+    .editor-grid { grid-template-columns: 1fr; }
+    .editor-wrap { padding: 1rem; }
+    .editor-title { font-size: 1.3rem; }
+
+    .preview-modal { border-radius: 12px; max-height: 95vh; }
+    .preview-scroll { padding: 1rem; }
+
+    .auth-card { padding: 1.5rem; }
+    .auth-logo { font-size: 1.2rem; }
+
+    .upgrade-banner { flex-direction: column; text-align: center; }
+
+    .result-actions { flex-direction: column; }
+    .result-action-btn { text-align: center; }
+
+    .score-card { padding: 1rem; }
+    .score-number { font-size: 1.5rem; }
+
+    .linkedin-section { padding: 1rem; }
+    #linkedinContent > div { grid-template-columns: 1fr !important; }
+
+    .modal { padding: 1.5rem; }
+    .modal-btns { flex-direction: column; }
+  }
+
+  @media (max-width: 480px) {
+    .hero h1 { font-size: 1.5rem; }
+    .chat-avatar { width: 26px; height: 26px; font-size: 0.75rem; }
+    .msg-avatar { width: 24px; height: 24px; font-size: 0.7rem; }
+    .plans-grid { grid-template-columns: 1fr; }
+    .preview-toolbar { flex-direction: column; gap: 8px; align-items: flex-start; }
+    .preview-toolbar-btns { width: 100%; }
+    .preview-toolbar-btns button { flex: 1; }
+  }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
