@@ -1227,11 +1227,14 @@
   function showForgotPassword() {
     clearAuthError();
     document.querySelector('.auth-tabs').style.display = 'none';
-    document.getElementById('auth-submit-btn').style.display = 'none';
-    document.querySelector('.form-group:nth-child(2)').style.display = 'none';
+    document.querySelector('.form-group:nth-child(4)').style.display = 'none';
     document.getElementById('promo-group').style.display = 'none';
-    document.getElementById('auth-email').placeholder = 'Enter your email to reset password';
     document.getElementById('auth-submit-btn').style.display = 'none';
+    document.getElementById('auth-email').placeholder = 'Enter your email to reset password';
+    document.getElementById('auth-email').value = '';
+  
+    const emailLabel = document.querySelector('.form-label');
+    if (emailLabel) emailLabel.textContent = 'Email address';
   
     const card = document.querySelector('.auth-card');
     let resetBtn = document.getElementById('reset-request-btn');
@@ -1239,9 +1242,10 @@
       resetBtn = document.createElement('button');
       resetBtn.id = 'reset-request-btn';
       resetBtn.className = 'auth-submit';
+      resetBtn.style.marginTop = '1rem';
       resetBtn.textContent = 'Send reset link';
       resetBtn.onclick = sendResetLink;
-      card.appendChild(resetBtn);
+      document.getElementById('auth-error').after(resetBtn);
     }
     resetBtn.style.display = 'block';
   }
