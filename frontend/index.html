@@ -373,6 +373,9 @@
       <p style="text-align:center;font-size:0.8rem;color:var(--text3);margin-top:1.25rem;">
         Don't have an account? <span style="color:var(--accent2);cursor:pointer;" onclick="setTab('signup')">Sign up free</span>
       </p>
+      <p style="text-align:center;font-size:0.8rem;color:var(--text3);margin-top:0.5rem;">
+        <span style="color:var(--accent2);cursor:pointer;" onclick="showForgotPassword()">Forgot your password?</span>
+      </p>
     </div>
   </div>
 </div>
@@ -921,6 +924,14 @@
     checkUrlParams();
   }
 
+  const saved = localStorage.getItem('cc_user');
+  if (saved) {
+    currentUser = JSON.parse(saved);
+    enterApp();
+    checkUrlParams();
+  }
+  checkResetParams();
+
   function openPreview() {
     const raw = window._lastResult || '';
     document.getElementById('resumePreviewContent').innerHTML = buildPreviewHTML(raw);
@@ -1218,6 +1229,99 @@
     const val = document.getElementById('liOutput')?.value;
     if (val) navigator.clipboard.writeText(val);
     alert('Copied!');
+  }
+
+  function showForgotPassword() {
+    clearAuthError();
+    document.querySelector('.auth-tabs').style.display = 'none';
+    document.getElementById('auth-submit-btn').style.display = 'none';
+    document.querySelector('.form-group:nth-child(2)').style.display = 'none';
+    document.getElementById('promo-group').style.display = 'none';
+    document.getElementById('auth-email').placeholder = 'Enter your email to reset password';
+    document.getElementById('auth-submit-btn').style.display = 'none';
+  
+    const card = document.querySelector('.auth-card');
+    let resetBtn = document.getElementById('reset-request-btn');
+    if (!resetBtn) {
+      resetBtn = document.createElement('button');
+      resetBtn.id = 'reset-request-btn';
+      resetBtn.className = 'auth-submit';
+      resetBtn.textContent = 'Send reset link';
+      resetBtn.onclick = sendResetLink;
+      card.appendChild(resetBtn);
+    }
+    resetBtn.style.display = 'block';
+  }
+  
+  async function sendResetLink() {
+    const email = document.getElementById('auth-email').value.trim();
+    if (!email) return showAuthError('Enter your email first!');
+    const btn = document.getElementById('reset-request-btn');
+    btn.textContent = 'Sending...';
+    btn.disabled = true;
+  
+    try {
+      const res = await fetch(`${BACKEND}/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      showAuthError(data.message);
+      document.getElementById('auth-error').style.background = '#34d39922';
+      document.getElementById('auth-error').style.borderColor = '#34d39944';
+      document.getElementById('auth-error').style.color = 'var(--green)';
+    } catch {
+      showAuthError('Something went wrong. Try again!');
+    }
+  
+    btn.textContent = 'Send reset link';
+    btn.disabled = false;
+  }
+  
+  function checkResetParams() {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('reset');
+    const email = params.get('email');
+    if (token && email) {
+      showPage('auth');
+      document.querySelector('.auth-tabs').style.display = 'none';
+      document.querySelector('.auth-sub').textContent = 'Choose a new password';
+      document.getElementById('auth-email').value = email;
+      document.getElementById('auth-email').disabled = true;
+      document.getElementById('auth-submit-btn').textContent = 'Reset password';
+      document.getElementById('auth-submit-btn').onclick = () => doReset(token, email);
+      window.history.replaceState({}, '', 'index.html');
+    }
+  }
+  
+  async function doReset(token, email) {
+    const password = document.getElementById('auth-password').value;
+    if (password.length < 6) return showAuthError('Password must be at least 6 characters');
+    const btn = document.getElementById('auth-submit-btn');
+    btn.textContent = 'Resetting...';
+    btn.disabled = true;
+  
+    try {
+      const res = await fetch(`${BACKEND}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, token, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showAuthError('Password reset! You can now log in.');
+        document.getElementById('auth-error').style.color = 'var(--green)';
+        setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+      } else {
+        showAuthError(data.error);
+      }
+    } catch {
+      showAuthError('Something went wrong. Try again!');
+    }
+  
+    btn.disabled = false;
+    btn.textContent = 'Reset password';
   }
 </script>
 </body>
