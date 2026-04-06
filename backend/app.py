@@ -7,10 +7,13 @@ import os
 import requests
 import stripe
 from datetime import date
+import resend
+import secrets
+
 
 load_dotenv()
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-
+resend.api_key = os.getenv("RESEND_API_KEY")
 app = Flask(__name__)
 CORS(app)
 bcrypt = Bcrypt(app)
@@ -377,5 +380,63 @@ def improve_resume():
     )
 
     return jsonify({"result": chat.choices[0].message.content})
+
+@app.route("/forgot-password", methods=["POST"])
+def forgot_password():
+    data = request.json
+    email = data.get("email", "").lower().strip()
+
+    users = db_get("users", f"email=eq.{email}&select=id")
+    if not users:
+        return jsonify({"message": "If this email exists you'll receive a reset link shortly!"}), 200
+
+    token = secrets.token_urlsafe(32)
+    db_post("password_resets", {"email": email, "token": token})
+
+    reset_url = f"https://careercraft-rouge.vercel.app/index.html?reset={token}&email={email}"
+
+    try:
+        resend.Emails.send({
+            "from": "CareerCraft <onboarding@resend.dev>",
+            "to": email,
+            "subject": "Reset your CareerCraft password",
+            "html": f"""
+            <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:2rem">
+              <h1 style="font-size:1.5rem;color:#1a1a2e">Reset your password</h1>
+              <p style="color:#666;line-height:1.6">Click the button below to reset your CareerCraft password. This link expires in 1 hour.</p>
+              <a href="{reset_url}" style="display:inline-block;margin:1.5rem 0;padding:12px 28px;background:#7c6aff;color:white;border-radius:8px;text-decoration:none;font-weight:600">Reset Password</a>
+              <p style="color:#999;font-size:0.8rem">If you didn't request this, ignore this email.</p>
+            </div>
+            """
+        })
+    except Exception as e:
+        print("EMAIL ERROR:", str(e))
+
+    return jsonify({"message": "If this email exists you'll receive a reset link shortly!"})
+
+
+@app.route("/reset-password", methods=["POST"])
+def reset_password():
+    data = request.json
+    email = data.get("email", "").lower().strip()
+    token = data.get("token", "")
+    new_password = data.get("password", "")
+
+    if len(new_password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+
+    resets = db_get("password_resets", f"email=eq.{email}&token=eq.{token}&select=id,created_at")
+    if not resets:
+        return jsonify({"error": "Invalid or expired reset link"}), 400
+
+    hashed = bcrypt.generate_password_hash(new_password).decode("utf-8")
+    db_patch("users", f"email=eq.{email}", {"password": hashed})
+
+    requests.delete(
+        f"{SUPABASE_URL}/rest/v1/password_resets?email=eq.{email}",
+        headers=HEADERS
+    )
+
+    return jsonify({"message": "Password reset successfully!"})
 if __name__ == "__main__":
     app.run(debug=True)
