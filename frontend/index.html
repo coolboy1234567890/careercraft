@@ -550,7 +550,7 @@
 </div>
 
 <script>
-  const BACKEND = 'https://careercraft-kcf5.onrender.com/';
+  const BACKEND = 'https://careercraft-kcf5.onrender.com';
   let currentUser = null;
   let usageCount = 0;
   let authMode = 'login';
@@ -920,13 +920,6 @@
   const saved = localStorage.getItem('cc_user');
   if (saved) { 
     currentUser = JSON.parse(saved); 
-    enterApp();
-    checkUrlParams();
-  }
-
-  const saved = localStorage.getItem('cc_user');
-  if (saved) {
-    currentUser = JSON.parse(saved);
     enterApp();
     checkUrlParams();
   }
