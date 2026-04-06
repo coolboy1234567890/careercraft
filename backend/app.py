@@ -438,5 +438,22 @@ def reset_password():
     )
 
     return jsonify({"message": "Password reset successfully!"})
+
+@app.route("/resumes", methods=["POST"])
+def get_resumes():
+    data = request.json
+    user_id = data.get("user_id")
+    resumes = db_get("resumes", f"user_id=eq.{user_id}&select=id,job_title,created_at&order=created_at.desc&limit=20")
+    return jsonify({"resumes": resumes})
+
+@app.route("/resume", methods=["POST"])
+def get_resume():
+    data = request.json
+    resume_id = data.get("resume_id")
+    user_id = data.get("user_id")
+    resume = db_get("resumes", f"id=eq.{resume_id}&user_id=eq.{user_id}&select=id,job_title,content,created_at")
+    if not resume:
+        return jsonify({"error": "Resume not found"}), 404
+    return jsonify({"resume": resume[0]})
 if __name__ == "__main__":
     app.run(debug=True)
