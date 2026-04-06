@@ -332,6 +332,20 @@
     .preview-toolbar-btns { width: 100%; }
     .preview-toolbar-btns button { flex: 1; }
   }
+
+  /* History page */
+  .history-wrap { max-width:800px; margin:0 auto; padding:2rem 1.5rem; width:100%; }
+  .history-title { font-family:'Syne',sans-serif; font-weight:800; font-size:1.8rem; letter-spacing:-0.02em; margin-bottom:0.25rem; }
+  .history-sub { color:var(--text2); font-size:0.9rem; margin-bottom:2rem; }
+  .history-list { display:flex; flex-direction:column; gap:0.75rem; }
+  .history-card { background:var(--surface); border:1px solid var(--border2); border-radius:14px; padding:1.25rem 1.5rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; transition:border-color 0.2s; }
+  .history-card:hover { border-color:var(--accent); }
+  .history-card-left { flex:1; }
+  .history-job-title { font-family:'Syne',sans-serif; font-weight:700; font-size:0.95rem; margin-bottom:0.25rem; }
+  .history-date { font-size:0.78rem; color:var(--text3); }
+  .history-card-btns { display:flex; gap:8px; flex-shrink:0; }
+  .history-empty { text-align:center; padding:4rem 2rem; color:var(--text3); }
+  .history-empty p { font-size:0.9rem; margin-bottom:1.5rem; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -493,6 +507,19 @@
         </div>
       </div>
 
+      <!-- History Page -->
+      <div class="page" id="page-history">
+        <div class="history-wrap">
+          <h2 class="history-title">Resume History</h2>
+          <p class="history-sub">All your previously generated resumes saved in one place.</p>
+          <div class="history-list" id="historyList">
+            <div class="history-empty">
+              <p>Loading your resumes...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <!-- Right panel: Output / manual editor -->
       <div class="editor-panel">
         <div class="editor-panel-header">
@@ -620,6 +647,7 @@
   function updateNav() {
     document.getElementById('navRight').innerHTML = `
       <span class="plan-badge">${currentUser.plan === 'free' ? 'Free Plan' : currentUser.plan === 'pro' ? 'Pro' : 'Pro+'}</span>
+      <button class="nav-btn" onclick="showPage('history'); loadHistory()">History</button>
       <button class="nav-btn" onclick="showPage('editor')">Resume Editor</button>
       <span style="font-size:0.85rem;color:var(--text2)">${currentUser.email}</span>
       <button class="nav-btn" onclick="logout()">Log out</button>`;
@@ -1316,6 +1344,67 @@
   
     btn.disabled = false;
     btn.textContent = 'Reset password';
+  }
+
+  async function loadHistory() {
+    const list = document.getElementById('historyList');
+    list.innerHTML = '<div class="history-empty"><p>Loading...</p></div>';
+  
+    try {
+      const res = await fetch(`${BACKEND}/resumes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: currentUser?.id })
+      });
+      const data = await res.json();
+      const resumes = data.resumes || [];
+  
+      if (resumes.length === 0) {
+        list.innerHTML = `
+          <div class="history-empty">
+            <p>No resumes yet! Generate your first one.</p>
+            <button class="editor-btn primary" onclick="showPage('app')">Build a resume →</button>
+          </div>`;
+        return;
+      }
+  
+      list.innerHTML = resumes.map(r => {
+        const date = new Date(r.created_at).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'short', day: 'numeric'
+        });
+        const title = r.job_title || 'Untitled Resume';
+        return `
+          <div class="history-card">
+            <div class="history-card-left">
+              <div class="history-job-title">${title}</div>
+              <div class="history-date">${date}</div>
+            </div>
+            <div class="history-card-btns">
+              <button class="result-action-btn" onclick="loadResume('${r.id}')">Load & Preview</button>
+            </div>
+          </div>`;
+      }).join('');
+  
+    } catch {
+      list.innerHTML = '<div class="history-empty"><p>Something went wrong loading your resumes.</p></div>';
+    }
+  }
+  
+  async function loadResume(resumeId) {
+    try {
+      const res = await fetch(`${BACKEND}/resume`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume_id: resumeId, user_id: currentUser?.id })
+      });
+      const data = await res.json();
+      if (data.resume) {
+        window._lastResult = data.resume.content;
+        openPreview();
+      }
+    } catch {
+      alert('Could not load resume. Try again!');
+    }
   }
 </script>
 </body>
