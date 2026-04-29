@@ -1348,10 +1348,52 @@
       else { resumeLines.push(line); }
     }
   
-    const name = resumeLines.find(l => l.match(/\*\*name\*\*/i))?.replace(/\*\*/g,'').replace(/name:/i,'').trim()
-      || resumeLines[0]?.replace(/\*/g,'').trim() || 'Your Name';
-  
-    const headline = resumeLines.find(l => l.match(/headline/i))?.replace(/\*\*/g,'').replace(/headline:/i,'').trim() || '';
+    // Skip lines that are labels/headers like "Resume:", "**Resume:**", "Contact Information:", etc.
+    const isJunkLine = l => {
+      const t = l.replace(/\*\*/g,'').trim().toLowerCase();
+      return !t
+        || t === 'resume:'
+        || t === 'resume'
+        || t.startsWith('contact information')
+        || t.startsWith('[not provided]')
+        || t.startsWith('cover letter')
+        || (t.endsWith(':') && t.split(' ').length <= 3);
+    };
+
+    // Try explicit **Name:** field first
+    let name = resumeLines.find(l => l.match(/\*\*name\*\*/i))
+      ?.replace(/\*\*/g,'').replace(/name:/i,'').trim();
+
+    // Otherwise find first non-junk, non-section-header line that looks like a real name
+    // A real name: 2-4 words, mostly letters, no colons, no bullets
+    if (!name) {
+      name = resumeLines
+        .map(l => l.replace(/\*\*/g,'').replace(/^\*\s?/,'').trim())
+        .find(l => {
+          if (isJunkLine(l)) return false;
+          const words = l.split(/\s+/);
+          return words.length >= 2 && words.length <= 5
+            && /^[A-Za-z]/.test(l)
+            && !l.includes(':')
+            && !l.startsWith('-')
+            && !l.startsWith('•');
+        }) || 'Your Name';
+    }
+
+    // Headline: look for job title line (comes right after name, or labelled)
+    const headline = resumeLines.find(l => l.match(/\*\*headline\*\*|\*\*title\*\*|\*\*job title\*\*/i))
+      ?.replace(/\*\*/g,'').replace(/headline:|title:|job title:/i,'').trim()
+      || resumeLines
+        .map(l => l.replace(/\*\*/g,'').replace(/^\*\s?/,'').trim())
+        .find(l => {
+          if (isJunkLine(l)) return false;
+          const cleaned = l.replace(/\*\*/g,'').trim();
+          if (cleaned === name) return false;
+          // Headline-like: contains role keywords or is a medium-length phrase
+          return cleaned.length > 8 && cleaned.length < 80
+            && !cleaned.includes('[') && !cleaned.startsWith('-')
+            && /[A-Za-z]/.test(cleaned);
+        }) || '';
   
     const cleanLine = l => l.replace(/\*\*/g,'').replace(/^\*\s?/,'').trim();
   
@@ -1384,9 +1426,21 @@
     let html = '';
     let currentSection = '';
     let currentContent = [];
-  
-    const sectionKeywords = ['experience','skills','education','about','summary','competencies','strengths','certifications','awards','objective'];
-  
+
+    const sectionKeywords = ['experience','skills','education','about','summary','competencies','strengths','certifications','awards','objective','qualifications','achievements','projects','languages','interests','volunteer'];
+
+    // Lines to skip entirely in the body — these are header-level labels not body content
+    const skipLine = l => {
+      const t = l.replace(/\*\*/g,'').trim().toLowerCase();
+      return !t
+        || t === 'resume' || t === 'resume:'
+        || t.startsWith('contact information')
+        || t.startsWith('[not provided]')
+        || t.startsWith('not provided')
+        || t === 'cover letter'
+        || t.startsWith('cover letter');
+    };
+
     const flushSection = () => {
       if (!currentSection) return;
       html += `<div class="resume-section">
@@ -1394,14 +1448,15 @@
         ${currentContent.map(l => {
           const clean = l.replace(/\*\*/g,'').replace(/^\*\s?/,'').trim();
           if (!clean) return '';
-          if (l.startsWith('*') || l.startsWith('-')) return `<ul><li>${clean}</li></ul>`;
+          if (l.trimStart().startsWith('*') || l.trimStart().startsWith('-') || l.trimStart().startsWith('•')) return `<ul><li>${clean.replace(/^[-•]\s*/,'')}</li></ul>`;
           return `<p>${clean}</p>`;
         }).join('')}
       </div>`;
       currentContent = [];
     };
-  
+
     for (const line of lines) {
+      if (skipLine(line)) continue;
       const clean = line.replace(/\*\*/g,'').trim().toLowerCase();
       const isSection = sectionKeywords.some(k => clean.includes(k)) && line.includes('**');
       if (isSection) {
