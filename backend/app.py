@@ -678,5 +678,89 @@ def college_summary():
         }
 
     return jsonify(result)
+@app.route("/scrape-job", methods=["POST"])
+def scrape_job():
+    import re
+    from html.parser import HTMLParser
+
+    data = request.json
+    url = data.get("url", "").strip()
+
+    if not url or not url.startswith("http"):
+        return jsonify({"error": "Invalid URL"}), 400
+
+    HEADERS_SCRAPE = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xhtml+xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
+
+    try:
+        resp = requests.get(url, headers=HEADERS_SCRAPE, timeout=12)
+        resp.raise_for_status()
+        html = resp.text
+    except Exception as e:
+        return jsonify({"error": f"Could not fetch URL: {str(e)}"}), 400
+
+    # Strip scripts, styles, nav, footer
+    html = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r'<style[^>]*>.*?</style>', '', html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r'<nav[^>]*>.*?</nav>', '', html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r'<footer[^>]*>.*?</footer>', '', html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r'<header[^>]*>.*?</header>', '', html, flags=re.DOTALL | re.IGNORECASE)
+
+    # Convert <br>, <p>, <li> to newlines for readability
+    html = re.sub(r'<br\s*/?>', '\n', html, flags=re.IGNORECASE)
+    html = re.sub(r'</?p[^>]*>', '\n', html, flags=re.IGNORECASE)
+    html = re.sub(r'<li[^>]*>', '\n• ', html, flags=re.IGNORECASE)
+
+    # Strip remaining tags
+    clean = re.sub(r'<[^>]+>', ' ', html)
+    # Collapse whitespace
+    clean = re.sub(r'[ \t]+', ' ', clean)
+    clean = re.sub(r'\n{3,}', '\n\n', clean)
+    clean = clean.strip()
+
+    if len(clean) < 200:
+        return jsonify({"error": "Could not extract enough content from this page"}), 400
+
+    # Detect hostname for source label
+    try:
+        from urllib.parse import urlparse
+        hostname = urlparse(url).hostname or url
+        if 'linkedin' in hostname: source = 'LinkedIn'
+        elif 'indeed' in hostname: source = 'Indeed'
+        elif 'glassdoor' in hostname: source = 'Glassdoor'
+        elif 'greenhouse' in hostname: source = 'Greenhouse'
+        elif 'lever' in hostname: source = 'Lever'
+        elif 'workday' in hostname: source = 'Workday'
+        else: source = hostname
+    except:
+        source = 'job posting'
+
+    # Use Groq to extract just the job description cleanly
+    prompt = f"""
+    The following is raw scraped text from a job posting page. Extract ONLY the job description content — 
+    job title, company, responsibilities, requirements, and qualifications.
+    Remove any navigation, cookie notices, ads, or unrelated site content.
+    Format it cleanly with clear sections. Output ONLY the cleaned job description, nothing else.
+
+    Raw text:
+    {clean[:6000]}
+    """
+
+    try:
+        chat = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+        )
+        job_description = chat.choices[0].message.content.strip()
+    except Exception:
+        # Fallback: just return first 3000 chars of cleaned text
+        job_description = clean[:3000]
+
+    return jsonify({"job_description": job_description, "source": source})
+
+
 if __name__ == "__main__":
     app.run(debug=True)
