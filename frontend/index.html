@@ -150,6 +150,18 @@
   .textarea-submit { margin-top: 8px; padding: 8px 20px; background: var(--accent); border: none; border-radius: 8px; color: white; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
   .textarea-submit:hover { background: #9580ff; }
 
+  .url-scraper-row { display: flex; gap: 8px; align-items: center; margin-bottom: 0; }
+  .url-input { flex: 1; background: var(--surface2); border: 1px solid var(--accent); border-radius: 10px; padding: 0.65rem 1rem; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.85rem; outline: none; transition: border-color 0.2s; }
+  .url-input::placeholder { color: var(--text3); }
+  .url-input:focus { border-color: var(--accent2); }
+  .url-fetch-btn { padding: 0.65rem 1rem; background: var(--accent); border: none; border-radius: 10px; color: white; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; align-items: center; gap: 6px; }
+  .url-fetch-btn:hover { background: #9580ff; }
+  .url-fetch-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .url-divider { display: flex; align-items: center; gap: 10px; margin: 10px 0 8px; }
+  .url-divider::before, .url-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .url-divider span { font-size: 0.75rem; color: var(--text3); white-space: nowrap; }
+  .url-success { font-size: 0.8rem; color: var(--green); padding: 6px 10px; background: #34d39915; border: 1px solid #34d39933; border-radius: 8px; }
+
   .result-box { background: var(--bg); border: 1px solid var(--border2); border-radius: 10px; padding: 1rem; margin-top: 8px; font-size: 0.82rem; line-height: 1.7; color: var(--text2); white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
   .result-box::-webkit-scrollbar { width: 3px; }
   .result-box::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
@@ -1025,10 +1037,65 @@
     const msgs = document.getElementById('messages');
     const div = document.createElement('div');
     div.className = 'msg bot';
-    div.innerHTML = `<div class="msg-avatar">✦</div><div style="flex:1"><div class="textarea-msg"><textarea id="stepInput" placeholder="${step.placeholder}"></textarea><br/><button class="textarea-submit" onclick="submitTextarea('${step.key}')">Continue →</button></div></div>`;
+    const isJobStep = step.key === 'jobDescription';
+    div.innerHTML = `
+      <div class="msg-avatar">✦</div>
+      <div style="flex:1">
+        <div class="textarea-msg">
+          ${isJobStep ? `
+            <div class="url-scraper-row" id="urlScraperRow">
+              <input class="url-input" id="jobUrlInput" type="url" placeholder="🔗 Paste a LinkedIn / Indeed / job URL to auto-fill..." oninput="detectUrl(this)"/>
+              <button class="url-fetch-btn" id="urlFetchBtn" onclick="scrapeJobUrl()" style="display:none">Import job →</button>
+            </div>
+            <div class="url-divider"><span>or paste manually below</span></div>
+          ` : ''}
+          <textarea id="stepInput" placeholder="${step.placeholder}"></textarea><br/>
+          <button class="textarea-submit" onclick="submitTextarea('${step.key}')">Continue →</button>
+        </div>
+      </div>`;
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
-    setTimeout(() => document.getElementById('stepInput')?.focus(), 100);
+    setTimeout(() => document.getElementById(isJobStep ? 'jobUrlInput' : 'stepInput')?.focus(), 100);
+  }
+
+  function detectUrl(input) {
+    const btn = document.getElementById('urlFetchBtn');
+    const val = input.value.trim();
+    const looksLikeUrl = val.startsWith('http') && val.includes('.');
+    btn.style.display = looksLikeUrl ? 'inline-flex' : 'none';
+  }
+
+  async function scrapeJobUrl() {
+    const url = document.getElementById('jobUrlInput')?.value.trim();
+    if (!url) return;
+    const btn = document.getElementById('urlFetchBtn');
+    const textarea = document.getElementById('stepInput');
+    btn.textContent = 'Importing…';
+    btn.disabled = true;
+    textarea.value = '';
+    textarea.placeholder = 'Fetching job description…';
+    try {
+      const res = await fetch(`${BACKEND}/scrape-job`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      if (data.error) {
+        textarea.placeholder = step?.placeholder || 'Paste the full job description here...';
+        textarea.value = '';
+        addMessage("Couldn't auto-import that URL — some job sites block scrapers. Try pasting the description manually below!");
+      } else {
+        textarea.value = data.job_description;
+        textarea.placeholder = '';
+        document.getElementById('urlScraperRow').innerHTML = `<div class="url-success">✓ Imported from ${data.source || new URL(url).hostname}</div>`;
+      }
+    } catch {
+      textarea.placeholder = 'Paste the full job description here...';
+      addMessage("Couldn't connect to the server. Paste the description manually below!");
+    }
+    btn.textContent = 'Import job →';
+    btn.disabled = false;
   }
   function addVoiceStep(step) {
     const isPro = currentUser?.plan === 'pro' || currentUser?.plan === 'proplus';
