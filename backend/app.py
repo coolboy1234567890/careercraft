@@ -455,5 +455,228 @@ def get_resume():
     if not resume:
         return jsonify({"error": "Resume not found"}), 404
     return jsonify({"resume": resume[0]})
+
+
+# ─── College Application Routes ────────────────────────────────────────────────
+
+@app.route("/college/personal-statement", methods=["POST"])
+def college_personal_statement():
+    data = request.json
+    user_id = data.get("user_id")
+    plan = data.get("plan", "free")
+
+    # Rate limit free users using the same usage table
+    if plan == "free" and user_id:
+        today = str(date.today())
+        usage = db_get("usage", f"user_id=eq.{user_id}&date=eq.{today}&select=count,id")
+        if usage:
+            if usage[0]["count"] >= FREE_DAILY_LIMIT:
+                return jsonify({"error": "daily_limit"}), 429
+            db_patch("usage", f"user_id=eq.{user_id}&date=eq.{today}", {"count": usage[0]["count"] + 1})
+        else:
+            db_post("usage", {"user_id": user_id, "date": today, "count": 1})
+
+    university = data.get("university", "")
+    story = data.get("story", "")
+    academics = data.get("academics", "")
+    tone = data.get("tone", "Authentic & personal")
+    prompt_q = data.get("prompt", "")
+    word_limit = data.get("word_limit", 650)
+    voice_sample = data.get("voice_sample", "")
+
+    voice_instruction = ""
+    if voice_sample and plan in ["pro", "proplus"]:
+        voice_instruction = f"""
+        The applicant has provided a writing sample — match their voice exactly:
+        ---
+        {voice_sample}
+        ---
+        Analyze their vocabulary, sentence rhythm, and personality. Write as them, not as a generic AI.
+        """
+
+    prompt = f"""
+    You are an expert college admissions counselor with 20 years of experience helping students get into top universities.
+
+    Write a compelling personal statement for a college application.
+
+    Target university/program: {university or "a competitive university"}
+    {"Essay prompt: " + prompt_q if prompt_q else "Open-ended personal statement"}
+    Requested tone: {tone}
+    Word limit: approximately {word_limit} words
+
+    About the applicant:
+    - Their story: {story}
+    - Academic achievements & interests: {academics or "Not specified"}
+
+    {voice_instruction}
+
+    Rules:
+    1. NEVER invent experiences, awards, or facts not mentioned by the applicant
+    2. Stay within the word limit (±10%)
+    3. Open with a compelling hook — NOT "I have always been passionate about..."
+    4. Show, don't tell — use specific moments and details
+    5. Sound like a real {tone.lower()} student, not a robot
+    6. End with a strong forward-looking statement connecting past to future
+    7. Output ONLY the personal statement — no intro, no explanation, no notes
+    """
+
+    chat = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama-3.3-70b-versatile",
+    )
+    return jsonify({"result": chat.choices[0].message.content})
+
+
+@app.route("/college/activities", methods=["POST"])
+def college_activities():
+    data = request.json
+    activities = data.get("activities", [])
+    university = data.get("university", "")
+
+    if not activities:
+        return jsonify({"error": "No activities provided"}), 400
+
+    activities_text = "\n".join([
+        f"{i+1}. {a.get('name','')} — {a.get('role','')} — {a.get('desc','')}"
+        for i, a in enumerate(activities)
+    ])
+
+    prompt = f"""
+    You are a college admissions expert helping a student write their extracurricular activity descriptions.
+
+    {f"Target school: {university}" if university else ""}
+
+    Here are the student's activities (raw notes):
+    {activities_text}
+
+    For each activity, write a polished 1-2 sentence description (maximum 150 characters per activity, like Common App format).
+    Focus on:
+    - Specific role and impact
+    - Leadership, initiative, or growth shown
+    - Quantify where possible (team size, hours/week, achievements)
+    - Strong action verbs
+
+    Format output as:
+    [Activity Name] | [Role]
+    [Polished description]
+
+    Output ONLY the formatted activity list. No intro, no notes.
+    """
+
+    chat = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama-3.3-70b-versatile",
+    )
+    return jsonify({"result": chat.choices[0].message.content})
+
+
+@app.route("/college/short-answer", methods=["POST"])
+def college_short_answer():
+    data = request.json
+    question = data.get("question", "")
+    background = data.get("background", "")
+    university = data.get("university", "")
+    word_limit = data.get("word_limit", 150)
+    tone = data.get("tone", "Genuine & direct")
+
+    if not question or not background:
+        return jsonify({"error": "Question and background are required"}), 400
+
+    prompt = f"""
+    You are a college admissions expert helping a student answer a short application question.
+
+    Question: {question}
+    {f"University/Program: {university}" if university else ""}
+    Word limit: approximately {word_limit} words
+    Tone: {tone}
+
+    About the student: {background}
+
+    Rules:
+    1. Answer the question directly and specifically
+    2. Stay within the word limit (±10%)
+    3. NEVER invent facts not mentioned by the student
+    4. Sound like a real human student — {tone.lower()}
+    5. Be specific, not generic — avoid clichés
+    6. Output ONLY the answer — no intro, no explanation
+    """
+
+    chat = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama-3.3-70b-versatile",
+    )
+    return jsonify({"result": chat.choices[0].message.content})
+
+
+@app.route("/college/summary", methods=["POST"])
+def college_summary():
+    data = request.json
+    user_id = data.get("user_id")
+    plan = data.get("plan", "free")
+
+    if plan == "free" and user_id:
+        today = str(date.today())
+        usage = db_get("usage", f"user_id=eq.{user_id}&date=eq.{today}&select=count,id")
+        if usage:
+            if usage[0]["count"] >= FREE_DAILY_LIMIT:
+                return jsonify({"error": "daily_limit"}), 429
+            db_patch("usage", f"user_id=eq.{user_id}&date=eq.{today}", {"count": usage[0]["count"] + 1})
+        else:
+            db_post("usage", {"user_id": user_id, "date": today, "count": 1})
+
+    university = data.get("university", "the university")
+    program = data.get("program", "")
+    story = data.get("story", "")
+    academics = data.get("academics", "")
+    activities = data.get("activities", "")
+    why = data.get("why", "")
+    goals = data.get("goals", "")
+
+    import json as json_lib
+
+    prompt = f"""
+    You are an expert college admissions counselor. Generate a full application package for this student.
+
+    Target: {university} — {program}
+
+    Student background:
+    - Story: {story}
+    - Academics: {academics}
+    - Activities: {activities}
+    - Why this school: {why}
+    - Goals: {goals}
+
+    Generate three sections and respond ONLY with a JSON object:
+    {{
+      "personal_statement": "~500 word personal statement...",
+      "activities_summary": "Polished activity overview paragraph (150-200 words)...",
+      "why_us": "Compelling why this school response (150-200 words)..."
+    }}
+
+    Rules for all sections:
+    - Never invent facts not provided
+    - Sound human and authentic
+    - Be specific, not generic
+    - Respond with ONLY the JSON, no extra text or markdown
+    """
+
+    chat = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama-3.3-70b-versatile",
+    )
+
+    try:
+        content = chat.choices[0].message.content
+        # Strip potential markdown code fences
+        content = content.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+        result = json_lib.loads(content)
+    except Exception:
+        result = {
+            "personal_statement": chat.choices[0].message.content,
+            "activities_summary": "Could not parse activities section. Please regenerate.",
+            "why_us": "Could not parse why-us section. Please regenerate."
+        }
+
+    return jsonify(result)
 if __name__ == "__main__":
     app.run(debug=True)
