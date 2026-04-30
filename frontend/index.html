@@ -425,6 +425,14 @@
     .college-tab { font-size: 0.75rem; padding: 7px 4px; }
     .college-output-tabs { flex-wrap: wrap; }
   }
+
+  .college-voice-locked { display: flex; align-items: center; gap: 1rem; background: linear-gradient(135deg, #7c6aff15, #a78bfa08); border: 1px solid #7c6aff33; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .college-voice-lock-icon { font-size: 1.25rem; flex-shrink: 0; }
+  .college-voice-lock-title { font-size: 0.88rem; font-weight: 500; color: var(--accent2); margin-bottom: 2px; }
+  .college-voice-lock-sub { font-size: 0.8rem; color: var(--text2); line-height: 1.5; }
+  .college-voice-lock-sub em { font-style: normal; color: var(--text); }
+  .college-voice-upgrade-btn { white-space: nowrap; padding: 7px 16px; background: var(--accent); border: none; border-radius: 8px; color: white; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+  .college-voice-upgrade-btn:hover { background: #9580ff; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -718,10 +726,7 @@
           </div>
         </div>
 
-        <div class="college-field" id="ps-voice-field" style="display:none">
-          <label>Your writing sample <span style="color:var(--accent2)">✦ Pro voice matching</span></label>
-          <textarea id="ps-voice" rows="3" placeholder="Paste anything you've written — the AI will match your natural voice and style..."></textarea>
-        </div>
+        <div id="ps-voice-field"></div>
 
         <button class="college-generate-btn" id="ps-gen-btn" onclick="generatePersonalStatement()">✦ Generate Personal Statement</button>
       </div>
@@ -809,6 +814,7 @@
             <button class="tone-pill" onclick="selectTone('sa','Analytical & focused')">Analytical & focused</button>
           </div>
         </div>
+        <div id="sa-voice-field"></div>
         <button class="college-generate-btn" id="sa-gen-btn" onclick="generateShortAnswer()">✦ Generate Short Answer</button>
       </div>
 
@@ -864,6 +870,7 @@
           <textarea id="sum-goals" rows="2" placeholder="What do you want to do after graduating? Long-term vision?"></textarea>
         </div>
 
+        <div id="sum-voice-field"></div>
         <button class="college-generate-btn" id="sum-gen-btn" onclick="generateFullSummary()">✦ Generate Full Application Package</button>
       </div>
 
@@ -1857,11 +1864,27 @@
   }
 
   function initCollegePage() {
-    // Show voice field for pro users
     const isPro = currentUser?.plan === 'pro' || currentUser?.plan === 'proplus';
-    const voiceField = document.getElementById('ps-voice-field');
-    if (voiceField) voiceField.style.display = isPro ? 'block' : 'none';
-    // Init activity list if empty
+
+    const voiceHTML = isPro
+      ? `<div class="college-field">
+          <label>Your writing sample <span style="color:var(--accent2)">✦ Voice matching</span></label>
+          <textarea rows="3" placeholder="Paste anything you've written — an old essay, a cover letter, a bio — and the AI will write in your exact voice and style..."></textarea>
+        </div>`
+      : `<div class="college-voice-locked">
+          <div class="college-voice-lock-icon">🔒</div>
+          <div>
+            <p class="college-voice-lock-title">Voice matching — Pro feature</p>
+            <p class="college-voice-lock-sub">Upgrade to Pro and the AI will write in <em>your</em> voice — matching your vocabulary, sentence rhythm, and personality.</p>
+          </div>
+          <button class="college-voice-upgrade-btn" onclick="upgradeToplan('pro')">Upgrade to Pro →</button>
+        </div>`;
+
+    ['ps','sa','sum'].forEach(prefix => {
+      const el = document.getElementById(`${prefix}-voice-field`);
+      if (el) el.innerHTML = voiceHTML;
+    });
+
     if (activityCount === 0) { addActivity(); addActivity(); }
   }
 
@@ -1956,7 +1979,7 @@
     const prompt = document.getElementById('ps-prompt').value.trim();
     const academics = document.getElementById('ps-academics').value.trim();
     const tone = collegeTones['ps'] || 'Authentic & personal';
-    const voice = document.getElementById('ps-voice')?.value.trim() || '';
+    const voice = document.querySelector('#ps-voice-field textarea')?.value.trim() || '';
 
     setCollegeLoading('ps-gen-btn', true);
     try {
@@ -1997,13 +2020,14 @@
     const university = document.getElementById('sa-university').value.trim();
     const wordlimit = document.getElementById('sa-wordlimit').value;
     const tone = collegeTones['sa'] || 'Genuine & direct';
+    const voice = document.querySelector('#sa-voice-field textarea')?.value.trim() || '';
 
     setCollegeLoading('sa-gen-btn', true);
     try {
       const res = await fetch(`${BACKEND}/college/short-answer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, background, university, word_limit: wordlimit, tone })
+        body: JSON.stringify({ question, background, university, word_limit: wordlimit, tone, voice_sample: voice, plan: currentUser?.plan || 'free' })
       });
       const data = await res.json();
       if (res.status === 429) { document.getElementById('limitModal').classList.add('show'); return; }
@@ -2021,13 +2045,14 @@
     const activities = document.getElementById('sum-activities').value.trim();
     const why = document.getElementById('sum-why').value.trim();
     const goals = document.getElementById('sum-goals').value.trim();
+    const voice = document.querySelector('#sum-voice-field textarea')?.value.trim() || '';
 
     setCollegeLoading('sum-gen-btn', true);
     try {
       const res = await fetch(`${BACKEND}/college/summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ university, program, story, academics, activities, why, goals, plan: currentUser?.plan || 'free' })
+        body: JSON.stringify({ university, program, story, academics, activities, why, goals, voice_sample: voice, plan: currentUser?.plan || 'free' })
       });
       const data = await res.json();
       if (res.status === 429) { document.getElementById('limitModal').classList.add('show'); return; }
