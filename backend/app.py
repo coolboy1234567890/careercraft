@@ -578,6 +578,18 @@ def college_short_answer():
     university = data.get("university", "")
     word_limit = data.get("word_limit", 150)
     tone = data.get("tone", "Genuine & direct")
+    voice_sample = data.get("voice_sample", "")
+    plan = data.get("plan", "free")
+
+    voice_instruction = ""
+    if voice_sample and plan in ["pro", "proplus"]:
+        voice_instruction = f"""
+        Match the writing voice of this sample exactly:
+        ---
+        {voice_sample}
+        ---
+        Analyze their vocabulary, rhythm, and personality. Write as them.
+        """
 
     if not question or not background:
         return jsonify({"error": "Question and background are required"}), 400
@@ -591,6 +603,8 @@ def college_short_answer():
     Tone: {tone}
 
     About the student: {background}
+
+    {voice_instruction}
 
     Rules:
     1. Answer the question directly and specifically
@@ -631,6 +645,28 @@ def college_summary():
     activities = data.get("activities", "")
     why = data.get("why", "")
     goals = data.get("goals", "")
+    voice_sample = data.get("voice_sample", "")
+
+    voice_instruction = ""
+    if voice_sample and plan in ["pro", "proplus"]:
+        voice_instruction = f"""
+        Match the writing voice of this sample exactly across all sections:
+        ---
+        {voice_sample}
+        ---
+        Analyze their vocabulary, sentence rhythm, and personality. Write as them, not as a generic AI.
+        """
+    voice_sample = data.get("voice_sample", "")
+
+    voice_instruction = ""
+    if voice_sample and plan in ["pro", "proplus"]:
+        voice_instruction = f"""
+        Match the writing voice of this sample exactly across all sections:
+        ---
+        {voice_sample}
+        ---
+        Analyze their vocabulary, sentence rhythm, and personality. Write everything as them.
+        """
 
     import json as json_lib
 
@@ -645,6 +681,8 @@ def college_summary():
     - Activities: {activities}
     - Why this school: {why}
     - Goals: {goals}
+
+    {voice_instruction}
 
     Generate three sections and respond ONLY with a JSON object:
     {{
