@@ -433,6 +433,14 @@
   .college-voice-lock-sub em { font-style: normal; color: var(--text); }
   .college-voice-upgrade-btn { white-space: nowrap; padding: 7px 16px; background: var(--accent); border: none; border-radius: 8px; color: white; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
   .college-voice-upgrade-btn:hover { background: #9580ff; }
+
+  .college-mode-switcher { display: flex; gap: 4px; background: var(--surface2); border-radius: 10px; padding: 4px; }
+  .college-mode-btn { padding: 6px 12px; border-radius: 7px; border: none; background: transparent; color: var(--text3); font-family: 'DM Sans', sans-serif; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; font-weight: 500; }
+  .college-mode-btn.active { background: var(--surface); color: var(--text); border: 1px solid var(--border2); }
+  @media (max-width: 700px) {
+    .college-mode-switcher { flex-wrap: wrap; }
+    .college-mode-btn { font-size: 0.75rem; padding: 5px 8px; }
+  }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -665,240 +673,30 @@
 
 <!-- College Application Page -->
 <div class="page" id="page-college">
-  <div class="college-wrap">
-    <div class="college-hero">
-      <div class="hero-tag">AI-powered applications</div>
-      <h2>Your college application,<br/><em>crafted perfectly.</em></h2>
-      <p>Tell us your story. We'll help you write a compelling personal statement, activity list, and short answers — tailored to each university.</p>
-    </div>
-
-    <div class="college-tabs">
-      <button class="college-tab active" onclick="switchCollegeTab('personal')">📝 Personal Statement</button>
-      <button class="college-tab" onclick="switchCollegeTab('activities')">🏆 Activities</button>
-      <button class="college-tab" onclick="switchCollegeTab('shortanswer')">✏️ Short Answers</button>
-      <button class="college-tab" onclick="switchCollegeTab('summary')">📋 Full Summary</button>
-    </div>
-
-    <!-- Personal Statement -->
-    <div class="college-section active" id="college-personal">
-      <div class="college-card">
-        <h3>Personal Statement Generator</h3>
-        <p>Share your background and story — the AI will craft a compelling personal statement that sounds like you.</p>
-
-        <div class="college-row">
-          <div class="college-field">
-            <label>Target University / Program</label>
-            <input type="text" id="ps-university" placeholder="e.g. University of Toronto, Computer Science"/>
-          </div>
-          <div class="college-field">
-            <label>Word limit</label>
-            <select id="ps-wordlimit">
-              <option value="250">250 words (Common App short)</option>
-              <option value="650" selected>650 words (Common App)</option>
-              <option value="500">500 words</option>
-              <option value="1000">1000 words</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="college-field">
-          <label>Prompt / Essay question <span style="color:var(--text3)">(optional — leave blank for open-ended)</span></label>
-          <input type="text" id="ps-prompt" placeholder="e.g. Describe a challenge you've overcome and what you learned from it"/>
-        </div>
-
-        <div class="college-field">
-          <label>Your story — tell us about yourself</label>
-          <textarea id="ps-story" rows="5" placeholder="Share your background, experiences, interests, goals, challenges you've faced, what makes you unique..."></textarea>
-        </div>
-
-        <div class="college-field">
-          <label>Academic achievements & interests</label>
-          <textarea id="ps-academics" rows="3" placeholder="e.g. Top of class in math, passionate about AI research, won science fair..."></textarea>
-        </div>
-
-        <div class="college-field">
-          <label>Tone</label>
-          <div class="tone-pills" id="ps-tone-pills">
-            <button class="tone-pill selected" onclick="selectTone('ps','Authentic & personal')">Authentic & personal</button>
-            <button class="tone-pill" onclick="selectTone('ps','Confident & ambitious')">Confident & ambitious</button>
-            <button class="tone-pill" onclick="selectTone('ps','Reflective & thoughtful')">Reflective & thoughtful</button>
-            <button class="tone-pill" onclick="selectTone('ps','Warm & storytelling')">Warm & storytelling</button>
-          </div>
-        </div>
-
-        <div id="ps-voice-field"></div>
-
-        <button class="college-generate-btn" id="ps-gen-btn" onclick="generatePersonalStatement()">✦ Generate Personal Statement</button>
+  <div class="app-wrap">
+    <div class="chat-header">
+      <div>
+        <div class="chat-title">🎓 College Application AI</div>
+        <div class="chat-sub">Tailored questions for your university</div>
       </div>
-
-      <div class="college-output-wrap" id="ps-output-wrap">
-        <div class="college-output-header">
-          <h3>Your Personal Statement</h3>
-          <div class="college-output-header-btns">
-            <button class="result-action-btn" onclick="copyCollegeOutput('ps-output-text')">Copy</button>
-            <button class="result-action-btn primary" onclick="downloadCollegeText('ps-output-text','personal-statement')">Download .txt</button>
-          </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <!-- Mode switcher -->
+        <div class="college-mode-switcher" id="collegeModes">
+          <button class="college-mode-btn active" onclick="setCollegeMode('personal')" id="cmode-personal">📝 Personal Statement</button>
+          <button class="college-mode-btn" onclick="setCollegeMode('activities')" id="cmode-activities">🏆 Activities</button>
+          <button class="college-mode-btn" onclick="setCollegeMode('shortanswer')" id="cmode-shortanswer">✏️ Short Answer</button>
+          <button class="college-mode-btn" onclick="setCollegeMode('summary')" id="cmode-summary">📋 Full Package</button>
         </div>
-        <div class="college-output-content">
-          <div id="ps-output-text" class="college-output-text"></div>
-          <div class="word-count" id="ps-word-count"></div>
-        </div>
+        <button class="nav-btn" onclick="restartCollegeChat()" style="font-size:0.8rem">Start over</button>
       </div>
     </div>
-
-    <!-- Activities -->
-    <div class="college-section" id="college-activities">
-      <div class="college-card">
-        <h3>Activity List Builder</h3>
-        <p>Add your extracurriculars, volunteer work, jobs, and achievements. The AI will write polished descriptions for each one.</p>
-
-        <div id="activity-list"></div>
-        <button class="add-activity-btn" onclick="addActivity()">+ Add another activity</button>
-
-        <div class="college-field" style="margin-top:1.25rem">
-          <label>Target university & program <span style="color:var(--text3)">(optional — helps tailor the language)</span></label>
-          <input type="text" id="act-university" placeholder="e.g. McGill University, Engineering"/>
-        </div>
-
-        <button class="college-generate-btn" id="act-gen-btn" onclick="generateActivities()" style="margin-top:1rem">✦ Polish My Activity Descriptions</button>
-      </div>
-
-      <div class="college-output-wrap" id="act-output-wrap">
-        <div class="college-output-header">
-          <h3>Polished Activity List</h3>
-          <div class="college-output-header-btns">
-            <button class="result-action-btn" onclick="copyCollegeOutput('act-output-text')">Copy</button>
-            <button class="result-action-btn primary" onclick="downloadCollegeText('act-output-text','activity-list')">Download .txt</button>
-          </div>
-        </div>
-        <div class="college-output-content">
-          <div id="act-output-text" class="college-output-text"></div>
-        </div>
-      </div>
+    <div class="messages" id="college-messages"></div>
+    <div id="college-result-area" style="display:none">
+      <div class="result-actions" id="college-result-actions"></div>
     </div>
-
-    <!-- Short Answers -->
-    <div class="college-section" id="college-shortanswer">
-      <div class="college-card">
-        <h3>Short Answer Responses</h3>
-        <p>Paste any short answer question from your application — the AI will write a sharp, focused response based on your background.</p>
-
-        <div class="college-field">
-          <label>The question</label>
-          <textarea id="sa-question" rows="2" placeholder="e.g. Why do you want to study at our university? (150 words)"></textarea>
-        </div>
-        <div class="college-field">
-          <label>Your background & key points to mention</label>
-          <textarea id="sa-background" rows="4" placeholder="Tell us about yourself — your interests, achievements, goals, experiences relevant to this question..."></textarea>
-        </div>
-        <div class="college-row">
-          <div class="college-field">
-            <label>University / Program</label>
-            <input type="text" id="sa-university" placeholder="e.g. Waterloo, Math"/>
-          </div>
-          <div class="college-field">
-            <label>Word limit</label>
-            <select id="sa-wordlimit">
-              <option value="100">100 words</option>
-              <option value="150" selected>150 words</option>
-              <option value="250">250 words</option>
-              <option value="350">350 words</option>
-            </select>
-          </div>
-        </div>
-        <div class="college-field">
-          <label>Tone</label>
-          <div class="tone-pills" id="sa-tone-pills">
-            <button class="tone-pill selected" onclick="selectTone('sa','Genuine & direct')">Genuine & direct</button>
-            <button class="tone-pill" onclick="selectTone('sa','Enthusiastic & passionate')">Enthusiastic & passionate</button>
-            <button class="tone-pill" onclick="selectTone('sa','Analytical & focused')">Analytical & focused</button>
-          </div>
-        </div>
-        <div id="sa-voice-field"></div>
-        <button class="college-generate-btn" id="sa-gen-btn" onclick="generateShortAnswer()">✦ Generate Short Answer</button>
-      </div>
-
-      <div class="college-output-wrap" id="sa-output-wrap">
-        <div class="college-output-header">
-          <h3>Your Short Answer</h3>
-          <div class="college-output-header-btns">
-            <button class="result-action-btn" onclick="copyCollegeOutput('sa-output-text')">Copy</button>
-            <button class="result-action-btn primary" onclick="downloadCollegeText('sa-output-text','short-answer')">Download .txt</button>
-          </div>
-        </div>
-        <div class="college-output-content">
-          <div id="sa-output-text" class="college-output-text"></div>
-          <div class="word-count" id="sa-word-count"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Full Summary -->
-    <div class="college-section" id="college-summary">
-      <div class="college-card">
-        <h3>Full Application Summary</h3>
-        <p>Fill in all your details once and get a complete, polished application package — personal statement, activity overview, academic summary, and a why-us section, all in one.</p>
-
-        <div class="college-row">
-          <div class="college-field">
-            <label>Target University</label>
-            <input type="text" id="sum-university" placeholder="e.g. UBC Vancouver"/>
-          </div>
-          <div class="college-field">
-            <label>Program / Major</label>
-            <input type="text" id="sum-program" placeholder="e.g. Computer Science"/>
-          </div>
-        </div>
-        <div class="college-field">
-          <label>Your story & background</label>
-          <textarea id="sum-story" rows="4" placeholder="Who are you? What experiences shaped you? What drives you?"></textarea>
-        </div>
-        <div class="college-field">
-          <label>Academic achievements</label>
-          <textarea id="sum-academics" rows="3" placeholder="GPA, awards, favourite subjects, research, projects..."></textarea>
-        </div>
-        <div class="college-field">
-          <label>Extracurriculars & activities</label>
-          <textarea id="sum-activities" rows="3" placeholder="Clubs, sports, volunteering, jobs, leadership roles..."></textarea>
-        </div>
-        <div class="college-field">
-          <label>Why this university / program?</label>
-          <textarea id="sum-why" rows="3" placeholder="What specifically draws you to this school? Professors, research, culture, programs..."></textarea>
-        </div>
-        <div class="college-field">
-          <label>Your goals</label>
-          <textarea id="sum-goals" rows="2" placeholder="What do you want to do after graduating? Long-term vision?"></textarea>
-        </div>
-
-        <div id="sum-voice-field"></div>
-        <button class="college-generate-btn" id="sum-gen-btn" onclick="generateFullSummary()">✦ Generate Full Application Package</button>
-      </div>
-
-      <div class="college-output-wrap" id="sum-output-wrap">
-        <div class="college-output-header">
-          <h3>Your Application Package</h3>
-          <div class="college-output-header-btns">
-            <button class="result-action-btn" onclick="copyCollegeOutput('sum-output-all')">Copy all</button>
-            <button class="result-action-btn primary" onclick="downloadCollegeText('sum-output-all','application-package')">Download .txt</button>
-          </div>
-        </div>
-        <div class="college-output-tabs">
-          <button class="college-output-tab active" onclick="switchOutputTab('sum','ps')">Personal Statement</button>
-          <button class="college-output-tab" onclick="switchOutputTab('sum','activities')">Activities</button>
-          <button class="college-output-tab" onclick="switchOutputTab('sum','whyus')">Why Us</button>
-          <button class="college-output-tab" onclick="switchOutputTab('sum','all')">All Sections</button>
-        </div>
-        <div class="college-output-content">
-          <div id="sum-output-ps" class="college-output-pane active"><div class="college-output-text" id="sum-ps-text"></div></div>
-          <div id="sum-output-activities" class="college-output-pane"><div class="college-output-text" id="sum-act-text"></div></div>
-          <div id="sum-output-whyus" class="college-output-pane"><div class="college-output-text" id="sum-why-text"></div></div>
-          <div id="sum-output-all" class="college-output-pane"><div class="college-output-text" id="sum-all-text"></div></div>
-        </div>
-      </div>
-    </div>
-
   </div>
 </div>
+
 
 <script>
   const BACKEND = 'https://careercraft-kcf5.onrender.com';
@@ -1842,235 +1640,369 @@
     }
   }
 
-  // ─── College Application ───────────────────────────────────────────────
+  // ─── College Chat Flow ────────────────────────────────────────────────────
 
-  const collegeTones = { ps: 'Authentic & personal', sa: 'Genuine & direct' };
-  let activityCount = 0;
+  let collegeMode = 'personal';
+  let collegeState = {};
+  let collegeStepIndex = 0;
+  let collegeSteps = [];
 
-  function switchCollegeTab(tab) {
-    document.querySelectorAll('.college-tab').forEach((t, i) => {
-      const tabs = ['personal','activities','shortanswer','summary'];
-      t.classList.toggle('active', tabs[i] === tab);
-    });
-    document.querySelectorAll('.college-section').forEach(s => s.classList.remove('active'));
-    document.getElementById('college-' + tab).classList.add('active');
-  }
+  // University-specific extra questions injected dynamically
+  const uniSpecific = {
+    'common app': [{ key: 'commonAppPrompt', bot: 'Which Common App prompt are you using? (e.g. "Prompt 1: Background", "Prompt 5: Accomplishment", or paste the full prompt)', type: 'textarea', placeholder: 'Paste the essay prompt here...' }],
+    'oxbridge': [{ key: 'interviewPrep', bot: 'Oxford and Cambridge applications often include interviews. Would you like me to tailor your statement to also prepare you for interview-style questions on your subject?', type: 'options', options: ['Yes, factor in interviews', 'No, just the statement'] }],
+    'ucas': [{ key: 'ucasWordCount', bot: 'UCAS personal statements have a 4000 character limit. Should I write to the full limit or keep it concise (~3000 chars)?', type: 'options', options: ['Full 4000 characters', 'Concise ~3000 characters'] }],
+    'uc ': [{ key: 'ucPIQ', bot: 'UCs use 4 Personal Insight Questions (PIQs) of 350 words each. Which PIQ are you writing? (e.g. PIQ 1: Leadership, PIQ 2: Creative, etc.)', type: 'textarea', placeholder: 'e.g. PIQ 3 — What would you say is your greatest talent or skill?' }],
+  };
 
-  function selectTone(prefix, tone) {
-    collegeTones[prefix] = tone;
-    document.querySelectorAll(`#${prefix}-tone-pills .tone-pill`).forEach(p => {
-      p.classList.toggle('selected', p.textContent.trim() === tone);
-    });
-  }
-
-  function initCollegePage() {
-    const isPro = currentUser?.plan === 'pro' || currentUser?.plan === 'proplus';
-
-    const voiceHTML = isPro
-      ? `<div class="college-field">
-          <label>Your writing sample <span style="color:var(--accent2)">✦ Voice matching</span></label>
-          <textarea rows="3" placeholder="Paste anything you've written — an old essay, a cover letter, a bio — and the AI will write in your exact voice and style..."></textarea>
-        </div>`
-      : `<div class="college-voice-locked">
-          <div class="college-voice-lock-icon">🔒</div>
-          <div>
-            <p class="college-voice-lock-title">Voice matching — Pro feature</p>
-            <p class="college-voice-lock-sub">Upgrade to Pro and the AI will write in <em>your</em> voice — matching your vocabulary, sentence rhythm, and personality.</p>
-          </div>
-          <button class="college-voice-upgrade-btn" onclick="upgradeToplan('pro')">Upgrade to Pro →</button>
-        </div>`;
-
-    ['ps','sa','sum'].forEach(prefix => {
-      const el = document.getElementById(`${prefix}-voice-field`);
-      if (el) el.innerHTML = voiceHTML;
-    });
-
-    if (activityCount === 0) { addActivity(); addActivity(); }
-  }
-
-  function addActivity() {
-    activityCount++;
-    const id = activityCount;
-    const list = document.getElementById('activity-list');
-    const div = document.createElement('div');
-    div.className = 'activity-item';
-    div.id = `activity-${id}`;
-    div.innerHTML = `
-      <button class="activity-remove" onclick="document.getElementById('activity-${id}').remove()" title="Remove">✕</button>
-      <div class="college-row" style="margin-bottom:0.75rem">
-        <div class="college-field" style="margin:0">
-          <label>Activity name</label>
-          <input type="text" placeholder="e.g. Robotics Club President" id="act-name-${id}"/>
-        </div>
-        <div class="college-field" style="margin:0">
-          <label>Role / Position</label>
-          <input type="text" placeholder="e.g. President, Volunteer, Captain" id="act-role-${id}"/>
-        </div>
-      </div>
-      <div class="college-field" style="margin-bottom:0.5rem">
-        <label>Description <span style="color:var(--text3)">(brief notes — AI will polish it)</span></label>
-        <textarea id="act-desc-${id}" rows="2" placeholder="What did you do, achieve, or contribute? How long were you involved?"></textarea>
-      </div>`;
-    list.appendChild(div);
-  }
-
-  function gatherActivities() {
-    const items = document.querySelectorAll('.activity-item');
-    const list = [];
-    items.forEach(item => {
-      const id = item.id.replace('activity-','');
-      const name = document.getElementById(`act-name-${id}`)?.value.trim();
-      const role = document.getElementById(`act-role-${id}`)?.value.trim();
-      const desc = document.getElementById(`act-desc-${id}`)?.value.trim();
-      if (name || desc) list.push({ name: name || 'Activity', role, desc });
-    });
-    return list;
-  }
-
-  function setCollegeLoading(btnId, loading) {
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-    btn.disabled = loading;
-    btn.textContent = loading ? 'Generating… please wait ✦' : btn.dataset.original || btn.textContent;
-    if (!loading && btn.dataset.original) btn.textContent = btn.dataset.original;
-    if (loading && !btn.dataset.original) btn.dataset.original = btn.textContent;
-  }
-
-  function showCollegeOutput(wrapId, textId, content, wordCountId) {
-    const wrap = document.getElementById(wrapId);
-    const text = document.getElementById(textId);
-    if (wrap) wrap.classList.add('show');
-    if (text) text.textContent = content;
-    if (wordCountId) {
-      const wc = document.getElementById(wordCountId);
-      if (wc) wc.textContent = `Word count: ${content.trim().split(/\s+/).length}`;
+  function getUniSpecificSteps(university) {
+    if (!university) return [];
+    const u = university.toLowerCase();
+    for (const [key, steps] of Object.entries(uniSpecific)) {
+      if (u.includes(key.trim())) return steps;
     }
-    wrap?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return [];
   }
 
-  function copyCollegeOutput(textId) {
-    const el = document.getElementById(textId);
-    if (el) { navigator.clipboard.writeText(el.textContent); alert('Copied!'); }
+  function buildCollegeSteps(mode, university) {
+    const uniSteps = getUniSpecificSteps(university);
+    const isPro = currentUser?.plan === 'pro' || currentUser?.plan === 'proplus';
+    const voiceStep = { key: 'voiceSample', type: 'voice', bot: '✦ Last step — do you want the writing to sound exactly like you?\n\nPaste anything you\'ve written before and I\'ll match your voice.' };
+
+    const common = [
+      { key: 'university', bot: '👋 Let\'s craft your college application!\n\nFirst — which university and program are you applying to?', type: 'textarea', placeholder: 'e.g. University of Toronto, Computer Science' },
+    ];
+
+    const personalSteps = [
+      ...common,
+      ...uniSteps,
+      { key: 'wordLimit', bot: `Great choice! What's the word limit for your personal statement?`, type: 'options', options: ['250 words', '500 words', '650 words (Common App)', '1000 words'] },
+      { key: 'essayPrompt', bot: 'Do you have a specific essay prompt or question? If not, just say "open-ended" and I\'ll write a general statement.', type: 'textarea', placeholder: 'e.g. Describe a challenge you\'ve overcome, or type "open-ended"' },
+      { key: 'story', bot: 'Tell me your story — what experiences, passions, or moments shaped who you are? The more you share, the better I can write.', type: 'textarea', placeholder: 'Share your background, key experiences, what drives you, challenges you\'ve faced...' },
+      { key: 'academics', bot: 'What are your top academic achievements and interests?', type: 'textarea', placeholder: 'e.g. 97% average, top of class in math, research project on AI, won regional science fair...' },
+      { key: 'tone', bot: 'What tone do you want?', type: 'options', options: ['Authentic & personal', 'Confident & ambitious', 'Reflective & thoughtful', 'Warm & storytelling'] },
+      voiceStep,
+    ];
+
+    const activitySteps = [
+      ...common,
+      { key: 'activities', bot: 'List all your activities — clubs, sports, volunteering, jobs, awards, anything. One per line is perfect.', type: 'textarea', placeholder: 'e.g.\nRobotics Club President — led team of 12 to regional finals\nVolunteer tutor — 3 hrs/week for 2 years\nPart-time barista at Tim Hortons\nSchool band — first trumpet' },
+      { key: 'activityFocus', bot: 'Which of these activities is most important to highlight for this application?', type: 'textarea', placeholder: 'e.g. The robotics club — I want admissions to see my leadership and engineering skills' },
+    ];
+
+    const shortAnswerSteps = [
+      ...common,
+      { key: 'saQuestion', bot: 'Paste the short answer question you need to answer:', type: 'textarea', placeholder: 'e.g. Why do you want to study at our university? (Max 150 words)' },
+      { key: 'saWordLimit', bot: 'What\'s the word limit?', type: 'options', options: ['100 words', '150 words', '250 words', '350 words'] },
+      { key: 'background', bot: 'Tell me the key points you want to cover in your answer — your interests, relevant experiences, achievements:', type: 'textarea', placeholder: 'e.g. I\'ve always loved math, won the regional olympiad, want to pursue AI research, love the prof\'s work on...' },
+      { key: 'tone', bot: 'Tone?', type: 'options', options: ['Genuine & direct', 'Enthusiastic & passionate', 'Analytical & focused'] },
+      voiceStep,
+    ];
+
+    const summarySteps = [
+      ...common,
+      { key: 'story', bot: 'Tell me your story — who are you, what experiences shaped you, what drives you?', type: 'textarea', placeholder: 'Be as detailed as you want — this feeds everything...' },
+      { key: 'academics', bot: 'Your academic achievements — GPA, awards, favourite subjects, research, projects:', type: 'textarea', placeholder: 'e.g. 4.0 GPA, top of class, AP Calculus, science fair winner...' },
+      { key: 'activities', bot: 'Your extracurriculars and activities:', type: 'textarea', placeholder: 'Clubs, sports, jobs, volunteering, leadership...' },
+      { key: 'why', bot: `What specifically draws you to ${university || 'this university'}? Any professors, programs, research, or campus culture?`, type: 'textarea', placeholder: 'e.g. Professor Smith\'s AI research, the co-op program, the tight-knit CS community...' },
+      { key: 'goals', bot: 'What are your goals after graduation?', type: 'textarea', placeholder: 'e.g. Work in AI research, start a company, become a doctor...' },
+      voiceStep,
+    ];
+
+    return { personal: personalSteps, activities: activitySteps, shortanswer: shortAnswerSteps, summary: summarySteps }[mode] || personalSteps;
   }
 
-  function downloadCollegeText(textId, filename) {
-    const el = document.getElementById(textId);
-    if (!el) return;
-    const blob = new Blob([el.textContent], { type: 'text/plain' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  function setCollegeMode(mode) {
+    collegeMode = mode;
+    document.querySelectorAll('.college-mode-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`cmode-${mode}`)?.classList.add('active');
+    restartCollegeChat();
+  }
+
+  function cAddMsg(content, isUser = false) {
+    const msgs = document.getElementById('college-messages');
+    const div = document.createElement('div');
+    div.className = `msg ${isUser ? 'user' : 'bot'}`;
+    div.innerHTML = `<div class="msg-avatar">${isUser ? '👤' : '✦'}</div><div><div class="msg-bubble">${content.replace(/\n/g,'<br>')}</div></div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function cAddTyping() {
+    const msgs = document.getElementById('college-messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot'; div.id = 'c-typing';
+    div.innerHTML = `<div class="msg-avatar">✦</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+    msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function cRemoveTyping() { document.getElementById('c-typing')?.remove(); }
+
+  function cAddTextarea(step) {
+    const msgs = document.getElementById('college-messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+    div.innerHTML = `
+      <div class="msg-avatar">✦</div>
+      <div style="flex:1">
+        <div class="textarea-msg">
+          <textarea id="c-step-input" placeholder="${step.placeholder || ''}"></textarea><br/>
+          <button class="textarea-submit" onclick="cSubmitTextarea('${step.key}')">Continue →</button>
+        </div>
+      </div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    setTimeout(() => document.getElementById('c-step-input')?.focus(), 100);
+  }
+
+  function cAddOptions(step) {
+    const msgs = document.getElementById('college-messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+    div.innerHTML = `<div class="msg-avatar">✦</div><div><div class="quick-options">${step.options.map(o => `<button class="quick-btn" onclick="cSelectOption('${o}','${step.key}')">${o}</button>`).join('')}</div></div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function cAddVoiceStep() {
+    const isPro = currentUser?.plan === 'pro' || currentUser?.plan === 'proplus';
+    const msgs = document.getElementById('college-messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+    if (isPro) {
+      div.innerHTML = `
+        <div class="msg-avatar">✦</div>
+        <div style="flex:1">
+          <div class="textarea-msg">
+            <textarea id="c-step-input" placeholder="Paste anything you've written — an essay, bio, cover letter — and I'll match your exact voice..."></textarea><br/>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="textarea-submit" onclick="cSubmitVoice()">Use my voice ✦</button>
+              <button class="textarea-submit" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text2)" onclick="cSkipVoice()">Skip</button>
+            </div>
+          </div>
+        </div>`;
+    } else {
+      div.innerHTML = `
+        <div class="msg-avatar">✦</div>
+        <div>
+          <div class="msg-bubble" style="background:linear-gradient(135deg,#7c6aff22,#a78bfa11);border:1px solid #7c6aff33">
+            🔒 <strong>Voice matching is a Pro feature</strong><br/><br/>
+            Upgrade to Pro and I'll write in <em>your</em> exact voice — matching your vocabulary and rhythm.
+            <br/><br/>
+            <div style="display:flex;gap:8px;margin-top:4px">
+              <button class="quick-btn" style="background:var(--accent);color:white;border-color:transparent" onclick="cSkipVoice()">Continue without it</button>
+              <button class="quick-btn" style="border-color:var(--accent);color:var(--accent2)" onclick="upgradeToplan('pro')">Upgrade to Pro →</button>
+            </div>
+          </div>
+        </div>`;
+    }
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function cSubmitVoice() {
+    const val = document.getElementById('c-step-input')?.value.trim();
+    if (!val) return cSkipVoice();
+    collegeState.voiceSample = val;
+    document.getElementById('c-step-input')?.closest('.msg').remove();
+    cAddMsg('✦ Voice sample saved — I\'ll write in your style!', true);
+    runCollegeGenerate();
+  }
+
+  function cSkipVoice() {
+    document.querySelectorAll('#college-messages .msg.bot').forEach(m => {
+      if (m.querySelector('#c-step-input') || m.querySelector('.quick-options')) m.remove();
+    });
+    collegeState.voiceSample = null;
+    runCollegeGenerate();
+  }
+
+  function cSubmitTextarea(key) {
+    const input = document.getElementById('c-step-input');
+    if (!input?.value.trim()) return;
+    const val = input.value.trim();
+    collegeState[key] = val;
+    input.closest('.msg').remove();
+    cAddMsg(val, true);
+
+    // After university step, rebuild steps with uni-specific additions
+    if (key === 'university') {
+      collegeSteps = buildCollegeSteps(collegeMode, val);
+    }
+    cNextStep();
+  }
+
+  function cSelectOption(val, key) {
+    collegeState[key] = val;
+    document.querySelector('#college-messages .quick-options')?.closest('.msg').remove();
+    cAddMsg(val, true);
+    cNextStep();
+  }
+
+  async function cNextStep() {
+    collegeStepIndex++;
+    if (collegeStepIndex < collegeSteps.length) {
+      await sleep(500); cAddTyping(); await sleep(700); cRemoveTyping();
+      const step = collegeSteps[collegeStepIndex];
+      // Personalise the "why this uni" question dynamically
+      const botMsg = step.bot.replace('${university || \'this university\'}', collegeState.university || 'this university');
+      cAddMsg(botMsg);
+      await sleep(300);
+      if (step.type === 'textarea') cAddTextarea(step);
+      else if (step.type === 'options') cAddOptions(step);
+      else if (step.type === 'voice') cAddVoiceStep();
+    } else {
+      await runCollegeGenerate();
+    }
+  }
+
+  async function runCollegeGenerate() {
+    cAddTyping();
+    try {
+      let res, data;
+      const plan = currentUser?.plan || 'free';
+      const uid = currentUser?.id;
+
+      if (collegeMode === 'personal') {
+        res = await fetch(`${BACKEND}/college/personal-statement`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ university: collegeState.university, story: collegeState.story, academics: collegeState.academics, tone: collegeState.tone || 'Authentic & personal', prompt: collegeState.essayPrompt, word_limit: parseInt(collegeState.wordLimit) || 650, voice_sample: collegeState.voiceSample || '', plan, user_id: uid, common_app_prompt: collegeState.commonAppPrompt, uc_piq: collegeState.ucPIQ, ucas_length: collegeState.ucasWordCount, interview_prep: collegeState.interviewPrep })
+        });
+        data = await res.json();
+        cRemoveTyping();
+        if (res.status === 429) { document.getElementById('limitModal').classList.add('show'); return; }
+        cShowResult(data.result, 'personal-statement');
+
+      } else if (collegeMode === 'activities') {
+        const acts = (collegeState.activities || '').split('\n').filter(Boolean).map(l => ({ name: l.split('—')[0]?.trim() || l, role: '', desc: l }));
+        res = await fetch(`${BACKEND}/college/activities`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activities: acts, university: collegeState.university, focus: collegeState.activityFocus })
+        });
+        data = await res.json();
+        cRemoveTyping();
+        cShowResult(data.result, 'activity-list');
+
+      } else if (collegeMode === 'shortanswer') {
+        res = await fetch(`${BACKEND}/college/short-answer`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: collegeState.saQuestion, background: collegeState.background, university: collegeState.university, word_limit: parseInt(collegeState.saWordLimit) || 150, tone: collegeState.tone || 'Genuine & direct', voice_sample: collegeState.voiceSample || '', plan, user_id: uid })
+        });
+        data = await res.json();
+        cRemoveTyping();
+        if (res.status === 429) { document.getElementById('limitModal').classList.add('show'); return; }
+        cShowResult(data.result, 'short-answer');
+
+      } else if (collegeMode === 'summary') {
+        res = await fetch(`${BACKEND}/college/summary`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ university: collegeState.university, program: '', story: collegeState.story, academics: collegeState.academics, activities: collegeState.activities, why: collegeState.why, goals: collegeState.goals, voice_sample: collegeState.voiceSample || '', plan, user_id: uid })
+        });
+        data = await res.json();
+        cRemoveTyping();
+        if (res.status === 429) { document.getElementById('limitModal').classList.add('show'); return; }
+        cShowSummaryResult(data);
+      }
+    } catch (e) {
+      cRemoveTyping();
+      cAddMsg('Oops! Something went wrong — make sure your backend is running! 🔌');
+    }
+  }
+
+  function cShowResult(text, filename) {
+    const wc = text.trim().split(/\s+/).length;
+    cAddMsg(`Here's your ${filename.replace('-',' ')}! ✦ (${wc} words)`);
+    const msgs = document.getElementById('college-messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+    div.innerHTML = `
+      <div class="msg-avatar">✦</div>
+      <div style="flex:1">
+        <div class="result-box" style="white-space:pre-wrap;font-size:0.85rem;line-height:1.8">${text}</div>
+        <div class="result-actions">
+          <button class="result-action-btn primary" onclick="cCopy(this, \`${text.replace(/`/g,'\\`')}\`)">Copy text</button>
+          <button class="result-action-btn" onclick="cDownload('${filename}', \`${text.replace(/`/g,'\\`')}\`)">Download .txt</button>
+          <button class="result-action-btn" onclick="restartCollegeChat()">Start over</button>
+        </div>
+      </div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function cShowSummaryResult(data) {
+    const ps = data.personal_statement || '';
+    const act = data.activities_summary || '';
+    const why = data.why_us || '';
+    const all = `=== PERSONAL STATEMENT ===\n${ps}\n\n=== ACTIVITIES OVERVIEW ===\n${act}\n\n=== WHY US ===\n${why}`;
+
+    cAddMsg('Here\'s your full application package! ✦');
+    const msgs = document.getElementById('college-messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+    div.innerHTML = `
+      <div class="msg-avatar">✦</div>
+      <div style="flex:1">
+        <div class="result-box">
+          <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+            <button class="quick-btn" onclick="cSwitchSummaryTab(this,'ps')" style="background:var(--accent);color:white;border-color:transparent">Personal Statement</button>
+            <button class="quick-btn" onclick="cSwitchSummaryTab(this,'act')">Activities</button>
+            <button class="quick-btn" onclick="cSwitchSummaryTab(this,'why')">Why Us</button>
+          </div>
+          <div id="csum-ps" style="white-space:pre-wrap;font-size:0.85rem;line-height:1.8">${ps}</div>
+          <div id="csum-act" style="white-space:pre-wrap;font-size:0.85rem;line-height:1.8;display:none">${act}</div>
+          <div id="csum-why" style="white-space:pre-wrap;font-size:0.85rem;line-height:1.8;display:none">${why}</div>
+        </div>
+        <div class="result-actions">
+          <button class="result-action-btn primary" onclick="cDownload('application-package', \`${all.replace(/`/g,'\\`')}\`)">Download all .txt</button>
+          <button class="result-action-btn" onclick="cCopy(this, \`${all.replace(/`/g,'\\`')}\`)">Copy all</button>
+          <button class="result-action-btn" onclick="restartCollegeChat()">Start over</button>
+        </div>
+      </div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function cSwitchSummaryTab(btn, tab) {
+    btn.closest('.result-box').querySelectorAll('[id^="csum-"]').forEach(p => p.style.display = 'none');
+    document.getElementById(`csum-${tab}`).style.display = 'block';
+    btn.closest('.result-box').querySelectorAll('.quick-btn').forEach(b => { b.style.background=''; b.style.color=''; b.style.borderColor=''; });
+    btn.style.background = 'var(--accent)'; btn.style.color = 'white'; btn.style.borderColor = 'transparent';
+  }
+
+  function cCopy(btn, text) {
+    navigator.clipboard.writeText(text);
+    const orig = btn.textContent; btn.textContent = 'Copied! ✓';
+    setTimeout(() => btn.textContent = orig, 2000);
+  }
+
+  function cDownload(filename, text) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
     a.download = `CareerCraft-${filename}.txt`; a.click();
   }
 
-  function switchOutputTab(prefix, tab) {
-    const panes = ['ps','activities','whyus','all'];
-    document.querySelectorAll(`#sum-output-wrap .college-output-tab`).forEach((t, i) => {
-      t.classList.toggle('active', panes[i] === tab);
-    });
-    panes.forEach(p => {
-      document.getElementById(`sum-output-${p}`)?.classList.toggle('active', p === tab);
-    });
+  function restartCollegeChat() {
+    collegeState = {};
+    collegeStepIndex = 0;
+    collegeSteps = buildCollegeSteps(collegeMode, '');
+    document.getElementById('college-messages').innerHTML = '';
+    initCollegeChat();
   }
 
-  async function generatePersonalStatement() {
-    const university = document.getElementById('ps-university').value.trim();
-    const story = document.getElementById('ps-story').value.trim();
-    if (!story) return alert('Please share a bit about yourself first!');
-    const wordlimit = document.getElementById('ps-wordlimit').value;
-    const prompt = document.getElementById('ps-prompt').value.trim();
-    const academics = document.getElementById('ps-academics').value.trim();
-    const tone = collegeTones['ps'] || 'Authentic & personal';
-    const voice = document.querySelector('#ps-voice-field textarea')?.value.trim() || '';
-
-    setCollegeLoading('ps-gen-btn', true);
-    try {
-      const res = await fetch(`${BACKEND}/college/personal-statement`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ university, story, academics, tone, prompt, word_limit: wordlimit, voice_sample: voice, plan: currentUser?.plan || 'free' })
-      });
-      const data = await res.json();
-      if (res.status === 429) { document.getElementById('limitModal').classList.add('show'); return; }
-      showCollegeOutput('ps-output-wrap', 'ps-output-text', data.result || data.error, 'ps-word-count');
-    } catch { alert('Something went wrong. Make sure your backend is running!'); }
-    setCollegeLoading('ps-gen-btn', false);
+  async function initCollegeChat() {
+    collegeSteps = buildCollegeSteps(collegeMode, '');
+    collegeStepIndex = 0;
+    await sleep(400); cAddTyping(); await sleep(900); cRemoveTyping();
+    const step = collegeSteps[0];
+    cAddMsg(step.bot);
+    await sleep(300);
+    cAddTextarea(step);
   }
 
-  async function generateActivities() {
-    const activities = gatherActivities();
-    if (activities.length === 0) return alert('Add at least one activity!');
-    const university = document.getElementById('act-university').value.trim();
-
-    setCollegeLoading('act-gen-btn', true);
-    try {
-      const res = await fetch(`${BACKEND}/college/activities`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activities, university })
-      });
-      const data = await res.json();
-      showCollegeOutput('act-output-wrap', 'act-output-text', data.result || data.error, null);
-    } catch { alert('Something went wrong. Make sure your backend is running!'); }
-    setCollegeLoading('act-gen-btn', false);
-  }
-
-  async function generateShortAnswer() {
-    const question = document.getElementById('sa-question').value.trim();
-    const background = document.getElementById('sa-background').value.trim();
-    if (!question || !background) return alert('Please fill in the question and your background!');
-    const university = document.getElementById('sa-university').value.trim();
-    const wordlimit = document.getElementById('sa-wordlimit').value;
-    const tone = collegeTones['sa'] || 'Genuine & direct';
-    const voice = document.querySelector('#sa-voice-field textarea')?.value.trim() || '';
-
-    setCollegeLoading('sa-gen-btn', true);
-    try {
-      const res = await fetch(`${BACKEND}/college/short-answer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, background, university, word_limit: wordlimit, tone, voice_sample: voice, plan: currentUser?.plan || 'free' })
-      });
-      const data = await res.json();
-      if (res.status === 429) { document.getElementById('limitModal').classList.add('show'); return; }
-      showCollegeOutput('sa-output-wrap', 'sa-output-text', data.result || data.error, 'sa-word-count');
-    } catch { alert('Something went wrong. Make sure your backend is running!'); }
-    setCollegeLoading('sa-gen-btn', false);
-  }
-
-  async function generateFullSummary() {
-    const university = document.getElementById('sum-university').value.trim();
-    const program = document.getElementById('sum-program').value.trim();
-    const story = document.getElementById('sum-story').value.trim();
-    if (!story) return alert('Please share a bit about yourself!');
-    const academics = document.getElementById('sum-academics').value.trim();
-    const activities = document.getElementById('sum-activities').value.trim();
-    const why = document.getElementById('sum-why').value.trim();
-    const goals = document.getElementById('sum-goals').value.trim();
-    const voice = document.querySelector('#sum-voice-field textarea')?.value.trim() || '';
-
-    setCollegeLoading('sum-gen-btn', true);
-    try {
-      const res = await fetch(`${BACKEND}/college/summary`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ university, program, story, academics, activities, why, goals, voice_sample: voice, plan: currentUser?.plan || 'free' })
-      });
-      const data = await res.json();
-      if (res.status === 429) { document.getElementById('limitModal').classList.add('show'); return; }
-
-      document.getElementById('sum-output-wrap').classList.add('show');
-      document.getElementById('sum-ps-text').textContent = data.personal_statement || '';
-      document.getElementById('sum-act-text').textContent = data.activities_summary || '';
-      document.getElementById('sum-why-text').textContent = data.why_us || '';
-      const all = [
-        '=== PERSONAL STATEMENT ===\n' + (data.personal_statement || ''),
-        '\n=== ACTIVITIES OVERVIEW ===\n' + (data.activities_summary || ''),
-        '\n=== WHY THIS SCHOOL ===\n' + (data.why_us || '')
-      ].join('\n');
-      document.getElementById('sum-all-text').textContent = all;
-      document.getElementById('sum-output-all').dataset.content = all;
-      document.getElementById('sum-output-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } catch { alert('Something went wrong. Make sure your backend is running!'); }
-    setCollegeLoading('sum-gen-btn', false);
+  function initCollegePage() {
+    if (document.getElementById('college-messages').children.length === 0) {
+      initCollegeChat();
+    }
   }
 </script>
 </body>
