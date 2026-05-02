@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from groq import Groq
@@ -798,6 +798,189 @@ def scrape_job():
         job_description = clean[:3000]
 
     return jsonify({"job_description": job_description, "source": source})
+
+
+@app.route("/college/export-docx", methods=["POST"])
+def college_export_docx():
+    from docx import Document
+    from docx.shared import Pt, Inches
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    import io
+
+    data = request.json
+    title = data.get("title", "Application")
+    content = data.get("content", "")
+
+    doc = Document()
+    for section in doc.sections:
+        section.top_margin = Inches(1)
+        section.bottom_margin = Inches(1)
+        section.left_margin = Inches(1.2)
+        section.right_margin = Inches(1.2)
+
+    h = doc.add_heading(title, 0)
+    h.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    h.runs[0].font.size = Pt(16)
+    doc.add_paragraph()
+
+    for block in content.split('\n\n'):
+        block = block.strip()
+        if not block:
+            continue
+        if block.startswith('---') or (block.isupper() and len(block) < 60):
+            doc.add_heading(block.strip('-').strip(), level=2)
+        else:
+            p = doc.add_paragraph(block)
+            p.paragraph_format.space_after = Pt(8)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return send_file(buf, mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                     as_attachment=True, download_name=f"{title}.docx")
+
+
+@app.route("/college/chat", methods=["POST"])
+def college_chat():
+    data = request.json
+    mode = data.get("mode", "personal")
+    history = data.get("history", [])
+    plan = data.get("plan", "free")
+
+    mode_label = {
+        "personal": "personal statement / college essay",
+        "activities": "extracurricular activity list",
+        "shortanswer": "short answer supplemental essay",
+        "summary": "full application package"
+    }.get(mode, "college application")
+
+    is_pro = plan in ["pro", "proplus"]
+
+    system = f"""You are an expert college admissions counselor helping a student write their {mode_label}.
+
+Have a warm, natural conversation to gather everything needed. Rules:
+1. Ask ONE question at a time — never multiple questions in one message
+2. ADAPT based on answers — if they say MIT ask about research; UCAS means 4000 chars; Common App ask which of 5 prompts; Oxford/Cambridge means deep intellectual curiosity focus; UC schools means PIQs of 350 words; Canadian unis often have shorter supplementals
+3. Ask specific follow-up questions based on what they actually share
+4. After 6-8 good exchanges you likely have enough info
+5. Near the end (but not first), if is_pro={is_pro}, ask for a voice sample by starting your message with exactly "VOICE_STEP: " followed by the question
+6. When you have enough, respond with exactly: READY_TO_GENERATE
+7. Output ONLY the question text, or "VOICE_STEP: [question]", or "READY_TO_GENERATE"
+
+University knowledge:
+- Common App: 650 words, 5 prompts
+- UCAS: 4000 chars, one statement, academic focus
+- Oxford/Cambridge: UCAS but needs deep intellectual curiosity
+- UC schools: 4 PIQs x 350 words
+- Canadian unis: shorter supplementals, program-specific questions
+- MIT/Ivy League: research, intellectual curiosity, unique angle
+- Australian unis: often grades-based, sometimes a personal statement"""
+
+    messages = []
+    for h in history:
+        messages.append({"role": h["role"], "content": h["content"]})
+
+    if not messages:
+        messages.append({"role": "user", "content": f"I want to write my {mode_label}. Start the conversation."})
+
+    chat = client.chat.completions.create(
+        messages=[{"role": "system", "content": system}] + messages,
+        model="llama-3.3-70b-versatile",
+        max_tokens=300,
+    )
+
+    response = chat.choices[0].message.content.strip()
+
+    if response.startswith("VOICE_STEP:"):
+        msg = response.replace("VOICE_STEP:", "").strip()
+        return jsonify({"message": msg, "voice_step": True, "done": False})
+    elif "READY_TO_GENERATE" in response:
+        closing = response.replace("READY_TO_GENERATE", "").strip() or "Perfect — I have everything I need. Writing your application now ✦"
+        return jsonify({"message": closing, "done": True})
+    else:
+        return jsonify({"message": response, "done": False, "placeholder": ""})
+
+
+@app.route("/college/generate", methods=["POST"])
+def college_generate():
+    import json as json_lib
+    data = request.json
+    mode = data.get("mode", "personal")
+    history = data.get("history", [])
+    voice_sample = data.get("voice_sample")
+    plan = data.get("plan", "free")
+    user_id = data.get("user_id")
+
+    if plan == "free" and user_id:
+        today = str(date.today())
+        usage = db_get("usage", f"user_id=eq.{user_id}&date=eq.{today}&select=count,id")
+        if usage:
+            if usage[0]["count"] >= FREE_DAILY_LIMIT:
+                return jsonify({"error": "daily_limit"}), 429
+            db_patch("usage", f"user_id=eq.{user_id}&date=eq.{today}", {"count": usage[0]["count"] + 1})
+        else:
+            db_post("usage", {"user_id": user_id, "date": today, "count": 1})
+
+    conversation = "\n".join([f"{h['role'].upper()}: {h['content']}" for h in history])
+
+    voice_instruction = ""
+    if voice_sample and plan in ["pro", "proplus"]:
+        voice_instruction = f"""VOICE MATCHING: Write in the student's exact voice based on this sample:
+---
+{voice_sample}
+---"""
+
+    if mode == "summary":
+        prompt = f"""Expert college admissions counselor. Write a full application package based on this conversation.
+
+CONVERSATION:
+{conversation}
+
+{voice_instruction}
+
+Respond ONLY with this JSON (no markdown):
+{{"personal_statement": "500-650 words...", "activities_summary": "150-200 words...", "why_us": "150-200 words..."}}
+
+Rules: Never invent facts. Sound human. Apply university-specific requirements from conversation."""
+
+        chat = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+        )
+        raw = chat.choices[0].message.content.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+        try:
+            result = json_lib.loads(raw)
+        except:
+            result = {"personal_statement": raw, "activities_summary": "", "why_us": ""}
+        return jsonify(result)
+
+    else:
+        task = {
+            "personal": "Write a compelling personal statement/college essay",
+            "activities": "Write polished activity descriptions (Common App format: ~150 chars each, action verbs)",
+            "shortanswer": "Write a focused short answer response"
+        }.get(mode, "Write the college application content")
+
+        prompt = f"""Expert college admissions counselor. Based on this conversation, {task}.
+
+CONVERSATION:
+{conversation}
+
+{voice_instruction}
+
+Rules:
+- Never invent facts not in conversation
+- Apply exact word/char limit discussed
+- Open with a hook, not "I have always been..."
+- Be specific to this student's actual experiences and university
+- Apply uni-specific format (UCAS 4000 chars, UC PIQs, Common App prompts, etc.)
+- Output ONLY the final content — no intro or explanation"""
+
+        chat = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+        )
+        return jsonify({"result": chat.choices[0].message.content.strip()})
 
 
 if __name__ == "__main__":
