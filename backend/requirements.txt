@@ -1,4 +1,4 @@
-﻿annotated-types==0.7.0
+annotated-types==0.7.0
 anyio==4.13.0
 bcrypt==5.0.0
 blinker==1.9.0
@@ -31,3 +31,4 @@ typing_extensions==4.15.0
 urllib3==2.6.3
 Werkzeug==3.1.7
 resend
+python-docx==1.1.2
