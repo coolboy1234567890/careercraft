@@ -359,6 +359,11 @@
   .history-empty { text-align:center; padding:4rem 2rem; color:var(--text3); }
   .history-empty p { font-size:0.9rem; margin-bottom:1.5rem; }
 
+  .fine-print { font-size: 0.74rem; color: var(--text3); line-height: 1.6; margin-top: 10px; padding: 8px 12px; background: var(--surface2); border-left: 2px solid var(--border2); border-radius: 0 6px 6px 0; }
+  .fine-print strong { color: var(--text2); }
+  footer { text-align: center; padding: 2rem 1.5rem; color: var(--text3); font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 2rem; }
+  .footer-legal { display: block; font-size: 0.72rem; color: var(--text3); opacity: 0.6; max-width: 680px; margin: 0.75rem auto 0; line-height: 1.6; }
+
   .account-settings-section { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); }
   .account-settings-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; margin-bottom: 1rem; color: var(--text2); }
   .account-settings-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -579,7 +584,7 @@
       </div>
     </div>
   </div>
-  <footer>Built with 💜 — <strong>CareerCraft</strong> © 2025. Your resume, your voice.</footer>
+  <footer>Built with 💜 — <strong>CareerCraft</strong> © 2025. Your resume, your voice.<br/><span class="footer-legal">CareerCraft generates AI-assisted drafts to help you get started. All content must be reviewed and personalised by you before use. You are solely responsible for the accuracy, honesty, and compliance of any resume, cover letter, or application you submit. Submitting AI-generated content without modification may violate employer expectations or institutional academic integrity policies.</span></footer>
 </div>
 
 <!-- Editor Page -->
@@ -1052,7 +1057,7 @@
       const msgs = document.getElementById('messages');
       const div = document.createElement('div');
       div.className = 'msg bot';
-      div.innerHTML = `<div class="msg-avatar">✦</div><div style="flex:1"><div class="result-box">${data.result}</div><div class="result-actions"><button class="result-action-btn primary" onclick="openPreview()">Preview & Download PDF</button><button class="result-action-btn" onclick="copyResult()">Copy text</button><button class="result-action-btn" onclick="startChat()">Start over</button></div></div>`;
+      div.innerHTML = `<div class="msg-avatar">✦</div><div style="flex:1"><div class="result-box">${data.result}</div><div class="result-actions"><button class="result-action-btn primary" onclick="openPreview()">Preview & Download PDF</button><button class="result-action-btn" onclick="copyResult()">Copy text</button><button class="result-action-btn" onclick="startChat()">Start over</button></div><p class="fine-print">⚠️ AI-generated content — review and personalise before submitting. CareerCraft is a drafting tool; you are responsible for the accuracy and authenticity of any application you submit.</p></div>`;
       msgs.appendChild(div);
       msgs.scrollTop = msgs.scrollHeight;
       window._lastResult = data.result;
@@ -1988,6 +1993,7 @@
           <button class="result-action-btn" onclick="cDownloadDocx('Application Package')">Download Word</button>
           <button class="result-action-btn" onclick="restartCollegeChat()">Start over</button>
         </div>
+        <p class="fine-print">⚠️ AI-generated content — you <strong>must</strong> review, edit, and personalise this before submitting. Submitting AI-generated work without modification may violate your institution's academic integrity policy. CareerCraft is a drafting assistant; responsibility for what you submit is entirely yours.</p>
       </div>`;
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
