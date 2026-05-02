@@ -716,23 +716,11 @@
     <div class="chat-header">
       <div>
         <div class="chat-title">🎓 College Application AI</div>
-        <div class="chat-sub">Tailored questions for your university</div>
+        <div class="chat-sub">Full application package — tailored to your university</div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <!-- Mode switcher -->
-        <div class="college-mode-switcher" id="collegeModes">
-          <button class="college-mode-btn active" onclick="setCollegeMode('personal')" id="cmode-personal">📝 Personal Statement</button>
-          <button class="college-mode-btn" onclick="setCollegeMode('activities')" id="cmode-activities">🏆 Activities</button>
-          <button class="college-mode-btn" onclick="setCollegeMode('shortanswer')" id="cmode-shortanswer">✏️ Short Answer</button>
-          <button class="college-mode-btn" onclick="setCollegeMode('summary')" id="cmode-summary">📋 Full Package</button>
-        </div>
-        <button class="nav-btn" onclick="restartCollegeChat()" style="font-size:0.8rem">Start over</button>
-      </div>
+      <button class="nav-btn" onclick="restartCollegeChat()" style="font-size:0.8rem">Start over</button>
     </div>
     <div class="messages" id="college-messages"></div>
-    <div id="college-result-area" style="display:none">
-      <div class="result-actions" id="college-result-actions"></div>
-    </div>
   </div>
 </div>
 
@@ -1746,17 +1734,332 @@
     }
   }
 
-  // ─── College Chat Flow (AI-driven) ───────────────────────────────────────
+  // ─── College Chat Flow (AI-driven, full package only) ────────────────────
 
-  let collegeMode = 'personal';
-  let collegeState = { history: [], done: false };
+  let collegeState = { history: [], voiceSample: null, uniResearch: null };
   let collegeGenerating = false;
 
-  function setCollegeMode(mode) {
-    collegeMode = mode;
-    document.querySelectorAll('.college-mode-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`cmode-${mode}`)?.classList.add('active');
-    restartCollegeChat();
+  function cAddMsg(content, isUser = false) {
+    const msgs = document.getElementById('college-messages');
+    const div = document.createElement('div');
+    div.className = `msg ${isUser ? 'user' : 'bot'}`;
+    div.innerHTML = `<div class="msg-avatar">${isUser ? '👤' : '✦'}</div><div><div class="msg-bubble">${content.replace(/\n/g,'<br>')}</div></div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function cAddTyping(id = 'c-typing') {
+    const msgs = document.getElementById('college-messages');
+    if (document.getElementById(id)) return;
+    const div = document.createElement('div');
+    div.className = 'msg bot'; div.id = id;
+    div.innerHTML = `<div class="msg-avatar">✦</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+    msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function cRemoveTyping(id = 'c-typing') { document.getElementById(id)?.remove(); }
+
+  function cRemoveInput() { document.getElementById('c-input-area')?.remove(); }
+
+  function cShowInput(placeholder = 'Type your answer...') {
+    cRemoveInput();
+    const msgs = document.getElementById('college-messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot'; div.id = 'c-input-area';
+    div.innerHTML = `
+      <div class="msg-avatar">✦</div>
+      <div style="flex:1">
+        <div class="textarea-msg">
+          <textarea id="c-step-input" placeholder="${placeholder}" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();cSend()}"></textarea><br/>
+          <button class="textarea-submit" onclick="cSend()">Continue →</button>
+        </div>
+      </div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    setTimeout(() => document.getElementById('c-step-input')?.focus(), 100);
+  }
+
+  function cShowVoiceInput() {
+    cRemoveInput();
+    const isPro = currentUser?.plan === 'pro' || currentUser?.plan === 'proplus';
+    const msgs = document.getElementById('college-messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot'; div.id = 'c-input-area';
+    if (isPro) {
+      div.innerHTML = `
+        <div class="msg-avatar">✦</div>
+        <div style="flex:1">
+          <div class="textarea-msg">
+            <textarea id="c-step-input" placeholder="Paste anything you've written — an essay, email, bio — and I'll write in your exact voice..."></textarea><br/>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="textarea-submit" onclick="cSendVoice()">Match my voice ✦</button>
+              <button class="textarea-submit" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text2)" onclick="cSend('__skip__')">Skip</button>
+            </div>
+          </div>
+        </div>`;
+    } else {
+      div.innerHTML = `
+        <div class="msg-avatar">✦</div>
+        <div>
+          <div class="msg-bubble" style="background:linear-gradient(135deg,#7c6aff22,#a78bfa11);border:1px solid #7c6aff33">
+            🔒 <strong>Voice matching is a Pro feature</strong><br/><br/>
+            Upgrade and I'll write in <em>your</em> exact voice — vocabulary, rhythm, everything.
+            <br/><br/>
+            <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+              <button class="quick-btn" style="background:var(--accent);color:white;border-color:transparent" onclick="cSend('__skip__')">Continue without it</button>
+              <button class="quick-btn" style="border-color:var(--accent);color:var(--accent2)" onclick="upgradeToplan('pro')">Upgrade to Pro →</button>
+            </div>
+          </div>
+        </div>`;
+    }
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    setTimeout(() => document.getElementById('c-step-input')?.focus(), 100);
+  }
+
+  async function cSendVoice() {
+    const val = document.getElementById('c-step-input')?.value.trim();
+    if (!val) return cSend('__skip__');
+    collegeState.voiceSample = val;
+    cRemoveInput();
+    cAddMsg('Voice sample saved ✦', true);
+    await cAskAI();
+  }
+
+  async function cSend(override) {
+    if (collegeGenerating) return;
+    const input = document.getElementById('c-step-input');
+    const val = override || input?.value.trim();
+    if (!val) return;
+    cRemoveInput();
+
+    if (val === '__skip__') {
+      cAddMsg('Skipping voice matching', true);
+      await cAskAI();
+      return;
+    }
+
+    cAddMsg(val, true);
+    collegeState.history.push({ role: 'user', content: val });
+
+    // First user message = university name — research it before asking more questions
+    const userMessages = collegeState.history.filter(h => h.role === 'user');
+    if (userMessages.length === 1 && !collegeState.uniResearch) {
+      await cResearchAndContinue(val);
+    } else {
+      await cAskAI();
+    }
+  }
+
+  async function cAskAI() {
+    if (collegeGenerating) return;
+    collegeGenerating = true;
+    await sleep(350); cAddTyping();
+
+    try {
+      const res = await fetch(`${BACKEND}/college/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'summary',
+          history: collegeState.history,
+          uni_research: collegeState.uniResearch,
+          voice_sample: collegeState.voiceSample,
+          plan: currentUser?.plan || 'free',
+          user_id: currentUser?.id
+        })
+      });
+      const data = await res.json();
+      cRemoveTyping();
+
+      if (res.status === 429) { document.getElementById('limitModal').classList.add('show'); collegeGenerating = false; return; }
+
+      collegeGenerating = false;
+
+      if (data.done) {
+        collegeState.history.push({ role: 'assistant', content: data.message });
+        cAddMsg(data.message);
+        await sleep(500);
+        await cGenerate();
+      } else if (data.voice_step) {
+        collegeState.history.push({ role: 'assistant', content: data.message });
+        cAddMsg(data.message);
+        cShowVoiceInput();
+      } else if (data.needs_research) {
+        // First message — AI gave us the uni name, go research it
+        collegeState.history.push({ role: 'assistant', content: data.message });
+        cAddMsg(data.message);
+        cShowInput(data.placeholder || 'e.g. University of Toronto, Computer Science');
+      } else {
+        collegeState.history.push({ role: 'assistant', content: data.message });
+        cAddMsg(data.message);
+        cShowInput(data.placeholder || 'Type your answer...');
+      }
+    } catch(e) {
+      cRemoveTyping();
+      cAddMsg('Something went wrong — make sure your backend is running! 🔌');
+      collegeGenerating = false;
+    }
+  }
+
+  // Called after user types their university — research it before continuing
+  async function cResearchAndContinue(university) {
+    cAddTyping('c-research-typing');
+    cAddMsg(`🔍 Looking up ${university}'s application requirements...`);
+
+    try {
+      const res = await fetch(`${BACKEND}/college/research-uni`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ university })
+      });
+      const data = await res.json();
+      cRemoveTyping('c-research-typing');
+      collegeState.uniResearch = data.research;
+
+      // Confirm what was found, then continue conversation
+      cAddMsg(`✦ Got it! Here's what I know about ${university}'s application:\n\n${data.summary}`);
+      await sleep(800);
+      await cAskAI();
+    } catch {
+      cRemoveTyping('c-research-typing');
+      collegeState.uniResearch = null;
+      await cAskAI();
+    }
+  }
+
+  async function cGenerate() {
+    cAddTyping();
+    try {
+      const res = await fetch(`${BACKEND}/college/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'summary',
+          history: collegeState.history,
+          uni_research: collegeState.uniResearch,
+          voice_sample: collegeState.voiceSample,
+          plan: currentUser?.plan || 'free',
+          user_id: currentUser?.id
+        })
+      });
+      const data = await res.json();
+      cRemoveTyping();
+      if (res.status === 429) { document.getElementById('limitModal').classList.add('show'); return; }
+      cShowSummaryResult(data);
+    } catch {
+      cRemoveTyping();
+      cAddMsg('Generation failed — make sure your backend is running! 🔌');
+    }
+  }
+
+  function cShowSummaryResult(data) {
+    const ps = data.personal_statement || '';
+    const act = data.activities_summary || '';
+    const why = data.why_us || '';
+    const extras = data.extras || ''; // any uni-specific extras like supplements
+    window._collegeResult = `PERSONAL STATEMENT\n\n${ps}\n\n---\nACTIVITIES\n\n${act}\n\n---\nWHY US\n\n${why}${extras ? '\n\n---\nSUPPLEMENTAL\n\n' + extras : ''}`;
+    window._collegeSummaryData = data;
+
+    cAddMsg('Here\'s your full application package ✦');
+    const msgs = document.getElementById('college-messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+
+    const tabs = [
+      { id: 'ps', label: 'Personal Statement', content: ps },
+      { id: 'act', label: 'Activities', content: act },
+      { id: 'why', label: 'Why Us', content: why },
+      ...(extras ? [{ id: 'ext', label: 'Supplemental', content: extras }] : [])
+    ];
+
+    div.innerHTML = `
+      <div class="msg-avatar">✦</div>
+      <div style="flex:1">
+        <div class="result-box">
+          <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap" id="csum-tabs">
+            ${tabs.map((t,i) => `<button class="quick-btn" onclick="cSwitchTab(this,'csum-${t.id}')" ${i===0?'style="background:var(--accent);color:white;border-color:transparent"':''}>${t.label}</button>`).join('')}
+          </div>
+          ${tabs.map((t,i) => `<div id="csum-${t.id}" style="white-space:pre-wrap;font-size:0.85rem;line-height:1.8;max-height:420px;overflow-y:auto${i>0?';display:none':''}">${t.content.replace(/</g,'&lt;')}</div>`).join('')}
+        </div>
+        <div class="result-actions" style="flex-wrap:wrap;gap:8px;margin-top:12px">
+          <button class="result-action-btn primary" onclick="cCopy(this)">Copy all</button>
+          <button class="result-action-btn" onclick="cDownloadPDF('Application Package')">Download PDF</button>
+          <button class="result-action-btn" onclick="cDownloadDocx('Application Package')">Download Word</button>
+          <button class="result-action-btn" onclick="restartCollegeChat()">Start over</button>
+        </div>
+      </div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function cSwitchTab(btn, tabId) {
+    const box = btn.closest('.result-box');
+    box.querySelectorAll('[id^="csum-"]').forEach(p => p.style.display = 'none');
+    document.getElementById(tabId).style.display = 'block';
+    box.querySelectorAll('.quick-btn').forEach(b => { b.style.background=''; b.style.color=''; b.style.borderColor=''; });
+    btn.style.background = 'var(--accent)'; btn.style.color = 'white'; btn.style.borderColor = 'transparent';
+  }
+
+  function cCopy(btn) {
+    navigator.clipboard.writeText(window._collegeResult || '');
+    const orig = btn.textContent; btn.textContent = 'Copied! ✓';
+    setTimeout(() => btn.textContent = orig, 2000);
+  }
+
+  function cDownloadPDF(title) {
+    const text = window._collegeResult || '';
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+    const margin = 60;
+    const maxWidth = doc.internal.pageSize.getWidth() - margin * 2;
+    doc.setFont('helvetica','bold'); doc.setFontSize(16);
+    doc.text(title, margin, 60);
+    doc.setFont('helvetica','normal'); doc.setFontSize(11);
+    const lines = doc.splitTextToSize(text, maxWidth);
+    let y = 90;
+    lines.forEach(line => {
+      if (y > doc.internal.pageSize.getHeight() - 60) { doc.addPage(); y = 60; }
+      doc.text(line, margin, y); y += 16;
+    });
+    doc.save(`CareerCraft-${title.replace(/\s+/g,'-')}.pdf`);
+  }
+
+  async function cDownloadDocx(title) {
+    const text = window._collegeResult || '';
+    try {
+      const res = await fetch(`${BACKEND}/college/export-docx`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content: text })
+      });
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `CareerCraft-${title.replace(/\s+/g,'-')}.docx`; a.click();
+    } catch {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+      a.download = `CareerCraft-${title.replace(/\s+/g,'-')}.txt`; a.click();
+    }
+  }
+
+  function restartCollegeChat() {
+    collegeState = { history: [], voiceSample: null, uniResearch: null };
+    collegeGenerating = false;
+    document.getElementById('college-messages').innerHTML = '';
+    initCollegeChat();
+  }
+
+  async function initCollegeChat() {
+    await sleep(400); cAddTyping(); await sleep(900); cRemoveTyping();
+    await cAskAI();
+  }
+
+  function initCollegePage() {
+    if (document.getElementById('college-messages').children.length === 0) {
+      initCollegeChat();
+    }
   }
 
   function cAddMsg(content, isUser = false) {
