@@ -849,6 +849,41 @@ def scrape_job():
     return jsonify({"job_description": job_description, "source": source})
 
 
+@app.route("/college/research-uni", methods=["POST"])
+def college_research_uni():
+    data = request.json
+    university = data.get("university", "").strip()
+    if not university:
+        return jsonify({"research": "", "summary": "No university provided."}), 400
+
+    research_prompt = f"""What are the application requirements for {university}?
+
+Include ALL of the following you know about:
+1. Application system (Common App, UCAS, Coalition, own portal, etc.)
+2. Personal statement / main essay — prompt(s) and word limit
+3. Supplemental essays — exact prompts and word limits
+4. Activities/extracurriculars section format
+5. Any "Why us?" or program-specific questions
+6. Any unique requirements for this school
+
+Be as specific as possible with actual prompts and word counts. Format as clear bullet points."""
+
+    chat = client.chat.completions.create(
+        messages=[{"role": "user", "content": research_prompt}],
+        model="llama-3.3-70b-versatile",
+        max_tokens=700,
+    )
+    research = chat.choices[0].message.content.strip()
+
+    summary_chat = client.chat.completions.create(
+        messages=[{"role": "user", "content": f"Summarize in 2-3 short sentences for a student — the most important things to know about applying to {university}:\n\n{research}"}],
+        model="llama-3.3-70b-versatile",
+        max_tokens=120,
+    )
+    summary = summary_chat.choices[0].message.content.strip()
+
+    return jsonify({"research": research, "summary": summary})
+
 @app.route("/college/export-docx", methods=["POST"])
 def college_export_docx():
     from docx import Document
@@ -892,9 +927,56 @@ def college_export_docx():
 @app.route("/college/chat", methods=["POST"])
 def college_chat():
     data = request.json
-    mode = data.get("mode", "personal")
+    mode = data.get("mode", "summary")
     history = data.get("history", [])
     plan = data.get("plan", "free")
+    uni_research = data.get("uni_research", "")
+    is_pro = plan in ["pro", "proplus"]
+
+    research_context = f"""
+UNIVERSITY REQUIREMENTS (researched):
+{uni_research}
+
+Use this to ask questions specific to what this university actually needs — 
+e.g. if they require a "Why Northwestern?" supplement, ask about that specifically.
+If they use UCAS, follow UCAS rules. If Common App prompt 2, ask about that prompt.
+""" if uni_research else ""
+
+    system = f"""You are an expert college admissions counselor helping a student write a full application package (personal statement + activities + why us + any supplementals).
+
+Have a warm natural conversation to gather everything needed. Rules:
+1. Ask ONE question at a time
+2. Use the university requirements below to ask the RIGHT questions for THIS specific school
+3. Adapt based on actual answers — dig into specifics they mention
+4. After 6-8 exchanges you likely have enough
+5. Near the end, if is_pro={is_pro}, ask for voice sample: start message with "VOICE_STEP: "
+6. When ready: respond with exactly "READY_TO_GENERATE"
+7. Output ONLY the question, "VOICE_STEP: [question]", or "READY_TO_GENERATE"
+
+{research_context}"""
+
+    messages = []
+    for h in history:
+        messages.append({{"role": h["role"], "content": h["content"]}})
+
+    if not messages:
+        messages.append({{"role": "user", "content": "I want to write my full college application package. Start by asking me what university I'm applying to."}})
+
+    chat = client.chat.completions.create(
+        messages=[{{"role": "system", "content": system}}] + messages,
+        model="llama-3.3-70b-versatile",
+        max_tokens=300,
+    )
+
+    response = chat.choices[0].message.content.strip()
+
+    if response.startswith("VOICE_STEP:"):
+        return jsonify({{"message": response.replace("VOICE_STEP:", "").strip(), "voice_step": True, "done": False}})
+    elif "READY_TO_GENERATE" in response:
+        closing = response.replace("READY_TO_GENERATE", "").strip() or "Perfect — writing your full application package now ✦"
+        return jsonify({{"message": closing, "done": True}})
+    else:
+        return jsonify({{"message": response, "done": False, "placeholder": ""}})
 
     mode_label = {
         "personal": "personal statement / college essay",
@@ -954,11 +1036,74 @@ University knowledge:
 def college_generate():
     import json as json_lib
     data = request.json
-    mode = data.get("mode", "personal")
     history = data.get("history", [])
     voice_sample = data.get("voice_sample")
     plan = data.get("plan", "free")
     user_id = data.get("user_id")
+    uni_research = data.get("uni_research", "")
+
+    if plan == "free" and user_id:
+        today = str(date.today())
+        usage = db_get("usage", f"user_id=eq.{user_id}&date=eq.{today}&select=count,id")
+        if usage:
+            if usage[0]["count"] >= FREE_DAILY_LIMIT:
+                return jsonify({"error": "daily_limit"}), 429
+            db_patch("usage", f"user_id=eq.{user_id}&date=eq.{today}", {"count": usage[0]["count"] + 1})
+        else:
+            db_post("usage", {"user_id": user_id, "date": today, "count": 1})
+
+    conversation = "\n".join([f"{h['role'].upper()}: {h['content']}" for h in history])
+
+    voice_instruction = ""
+    if voice_sample and plan in ["pro", "proplus"]:
+        voice_instruction = f"""VOICE MATCHING — CRITICAL: Write everything in the student's exact voice:
+---
+{voice_sample}
+---"""
+
+    research_context = f"""
+UNIVERSITY REQUIREMENTS (researched):
+{uni_research}
+
+Apply these EXACTLY — use the correct word limits, answer the actual prompts, 
+follow the right application format (UCAS/Common App/etc.), and include any required supplementals.
+""" if uni_research else ""
+
+    prompt = f"""You are an expert college admissions counselor. Write a complete application package based on this conversation.
+
+CONVERSATION:
+{conversation}
+
+{research_context}
+{voice_instruction}
+
+Respond ONLY with this JSON (no markdown, no explanation):
+{{
+  "personal_statement": "Full personal statement here — use the word limit and prompt from the conversation/research...",
+  "activities_summary": "Polished activities overview 150-200 words...",
+  "why_us": "Compelling why this school 150-200 words...",
+  "extras": "Any required supplemental essays or additional sections specific to this university (leave empty string if none needed)"
+}}
+
+Rules:
+- NEVER invent facts not mentioned in the conversation
+- Sound like a real human — open with a specific moment or image, not "I have always been..."
+- Apply the EXACT prompts, word limits, and format from the university requirements
+- If UCAS: personal statement is 4000 chars max, no "why us" section needed
+- If UC PIQs: write as 4 separate responses of 350 words each in the personal_statement field
+- If Common App: follow the specific prompt chosen
+- If extras are required by this uni (e.g. Northwestern supplement, MIT essays): write them in the extras field"""
+
+    chat = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama-3.3-70b-versatile",
+    )
+    raw = chat.choices[0].message.content.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+    try:
+        result = json_lib.loads(raw)
+    except:
+        result = {"personal_statement": raw, "activities_summary": "", "why_us": "", "extras": ""}
+    return jsonify(result)
 
     if plan == "free" and user_id:
         today = str(date.today())
