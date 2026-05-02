@@ -20,7 +20,9 @@ bcrypt = Bcrypt(app)
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+# Use the service role key — this bypasses RLS safely from your server.
+# Never expose this key in the frontend. The anon key is only for client-side Supabase auth (which we don't use).
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")  # fallback keeps dev working
 HEADERS = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -40,6 +42,53 @@ def db_post(table, data):
 def db_patch(table, filters, data):
     res = requests.patch(f"{SUPABASE_URL}/rest/v1/{table}?{filters}", json=data, headers={**HEADERS, "Prefer": "return=representation"})
     return res.json()
+
+def db_delete(table, filters):
+    res = requests.delete(f"{SUPABASE_URL}/rest/v1/{table}?{filters}", headers=HEADERS)
+    return res.status_code
+
+@app.route("/delete-resume", methods=["POST"])
+def delete_resume():
+    data = request.json
+    resume_id = data.get("resume_id")
+    user_id = data.get("user_id")
+    if not resume_id or not user_id:
+        return jsonify({"error": "Missing resume_id or user_id"}), 400
+    status = db_delete("resumes", f"id=eq.{resume_id}&user_id=eq.{user_id}")
+    if status in (200, 204):
+        return jsonify({"message": "Resume deleted"})
+    return jsonify({"error": "Could not delete resume"}), 500
+
+
+@app.route("/delete-history", methods=["POST"])
+def delete_history():
+    data = request.json
+    user_id = data.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Missing user_id"}), 400
+    status = db_delete("resumes", f"user_id=eq.{user_id}")
+    if status in (200, 204):
+        return jsonify({"message": "History cleared"})
+    return jsonify({"error": "Could not clear history"}), 500
+
+
+@app.route("/delete-account", methods=["POST"])
+def delete_account():
+    data = request.json
+    user_id = data.get("user_id")
+    password = data.get("password")
+    if not user_id or not password:
+        return jsonify({"error": "Missing user_id or password"}), 400
+    users = db_get("users", f"id=eq.{user_id}&select=id,password")
+    if not users:
+        return jsonify({"error": "User not found"}), 404
+    if not bcrypt.check_password_hash(users[0]["password"], password):
+        return jsonify({"error": "Incorrect password"}), 401
+    db_delete("resumes", f"user_id=eq.{user_id}")
+    db_delete("usage",   f"user_id=eq.{user_id}")
+    db_delete("users",   f"id=eq.{user_id}")
+    return jsonify({"message": "Account deleted"})
+
 
 @app.route("/")
 def home():
