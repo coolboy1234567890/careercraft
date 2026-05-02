@@ -359,6 +359,15 @@
   .history-empty { text-align:center; padding:4rem 2rem; color:var(--text3); }
   .history-empty p { font-size:0.9rem; margin-bottom:1.5rem; }
 
+  .account-settings-section { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); }
+  .account-settings-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; margin-bottom: 1rem; color: var(--text2); }
+  .account-settings-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .account-settings-card.danger-zone { border-color: #ff444422; background: #ff44440a; }
+  .danger-title { font-size: 0.9rem; font-weight: 500; color: var(--red); margin-bottom: 4px; }
+  .danger-sub { font-size: 0.8rem; color: var(--text3); line-height: 1.5; }
+  .danger-btn { padding: 8px 18px; background: transparent; border: 1px solid var(--red); border-radius: 9px; color: var(--red); font-family: 'DM Sans', sans-serif; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .danger-btn:hover { background: var(--red); color: white; }
+
   /* College Application Page */
   .college-wrap { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 5rem; width: 100%; }
   .college-hero { text-align: center; padding: 2rem 0 2.5rem; }
@@ -649,12 +658,42 @@
 <!-- History Page -->
 <div class="page" id="page-history">
   <div class="history-wrap">
-    <h2 class="history-title">Resume History</h2>
-    <p class="history-sub">All your previously generated resumes saved in one place.</p>
-    <div class="history-list" id="historyList">
-      <div class="history-empty">
-        <p>Loading your resumes...</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:0.25rem">
+      <div>
+        <h2 class="history-title">Resume History</h2>
+        <p class="history-sub">All your previously generated resumes saved in one place.</p>
       </div>
+      <button class="result-action-btn" style="color:var(--red);border-color:var(--red);opacity:0.8" onclick="confirmClearHistory()">Clear all history</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty"><p>Loading your resumes...</p></div>
+    </div>
+
+    <!-- Account settings -->
+    <div class="account-settings-section">
+      <h3 class="account-settings-title">Account settings</h3>
+      <div class="account-settings-card danger-zone">
+        <div>
+          <p class="danger-title">Delete account</p>
+          <p class="danger-sub">Permanently delete your account and all your data. This cannot be undone.</p>
+        </div>
+        <button class="danger-btn" onclick="showDeleteAccount()">Delete my account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete account modal -->
+<div class="modal-overlay" id="deleteAccountModal">
+  <div class="modal">
+    <div class="modal-icon">⚠️</div>
+    <h3>Delete your account?</h3>
+    <p style="margin-bottom:1rem">This will permanently delete your account, all your resumes, and usage history. This <strong>cannot be undone</strong>.</p>
+    <input type="password" id="deleteAccountPassword" placeholder="Enter your password to confirm" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:0.75rem 1rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;margin-bottom:1rem"/>
+    <p id="deleteAccountError" style="color:var(--red);font-size:0.82rem;margin-bottom:0.75rem;display:none"></p>
+    <div class="modal-btns">
+      <button onclick="document.getElementById('deleteAccountModal').classList.remove('show')" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text2)">Cancel</button>
+      <button id="deleteAccountBtn" onclick="deleteAccount()" style="background:var(--red);border:none;color:white">Yes, delete everything</button>
     </div>
   </div>
 </div>
@@ -1607,13 +1646,14 @@
         });
         const title = r.job_title || 'Untitled Resume';
         return `
-          <div class="history-card">
+          <div class="history-card" id="hcard-${r.id}">
             <div class="history-card-left">
               <div class="history-job-title">${title}</div>
               <div class="history-date">${date}</div>
             </div>
             <div class="history-card-btns">
               <button class="result-action-btn" onclick="loadResume('${r.id}')">Load & Preview</button>
+              <button class="result-action-btn" style="color:var(--red);border-color:var(--red);opacity:0.7" onclick="deleteResume('${r.id}', this)">Delete</button>
             </div>
           </div>`;
       }).join('');
@@ -1623,6 +1663,72 @@
     }
   }
   
+  async function deleteResume(resumeId, btn) {
+    if (!confirm('Delete this resume? This cannot be undone.')) return;
+    btn.disabled = true; btn.textContent = 'Deleting...';
+    try {
+      const res = await fetch(`${BACKEND}/delete-resume`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume_id: resumeId, user_id: currentUser?.id })
+      });
+      if (res.ok) {
+        document.getElementById(`hcard-${resumeId}`)?.remove();
+        const list = document.getElementById('historyList');
+        if (!list.querySelector('.history-card')) {
+          list.innerHTML = `<div class="history-empty"><p>No resumes yet!</p><button class="editor-btn primary" onclick="showPage('app')">Build a resume →</button></div>`;
+        }
+      } else { btn.disabled = false; btn.textContent = 'Delete'; alert('Could not delete. Try again!'); }
+    } catch { btn.disabled = false; btn.textContent = 'Delete'; }
+  }
+
+  async function confirmClearHistory() {
+    if (!confirm('Delete ALL your resumes? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`${BACKEND}/delete-history`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: currentUser?.id })
+      });
+      if (res.ok) {
+        document.getElementById('historyList').innerHTML = `<div class="history-empty"><p>History cleared!</p><button class="editor-btn primary" onclick="showPage('app')">Build a resume →</button></div>`;
+      } else { alert('Could not clear history. Try again!'); }
+    } catch { alert('Something went wrong.'); }
+  }
+
+  function showDeleteAccount() {
+    document.getElementById('deleteAccountPassword').value = '';
+    document.getElementById('deleteAccountError').style.display = 'none';
+    document.getElementById('deleteAccountModal').classList.add('show');
+  }
+
+  async function deleteAccount() {
+    const password = document.getElementById('deleteAccountPassword').value;
+    const errEl = document.getElementById('deleteAccountError');
+    const btn = document.getElementById('deleteAccountBtn');
+    if (!password) { errEl.textContent = 'Please enter your password.'; errEl.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'Deleting...';
+    try {
+      const res = await fetch(`${BACKEND}/delete-account`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: currentUser?.id, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        currentUser = null;
+        document.getElementById('deleteAccountModal').classList.remove('show');
+        showPage('auth');
+        alert('Your account has been deleted. Sorry to see you go!');
+      } else {
+        errEl.textContent = data.error || 'Could not delete account.';
+        errEl.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Yes, delete everything';
+      }
+    } catch {
+      errEl.textContent = 'Something went wrong. Try again!';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Yes, delete everything';
+    }
+  }
+
   async function loadResume(resumeId) {
     try {
       const res = await fetch(`${BACKEND}/resume`, {
