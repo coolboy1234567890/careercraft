@@ -1338,22 +1338,132 @@
           job_title: state.jobDescription.split('\n')[0].slice(0, 60)
         })
       });
-      const data = await res.json();
+
+      if (res.status === 429) { removeTyping(); document.getElementById('limitModal').classList.add('show'); return; }
       removeTyping();
-      if (res.status === 429) { document.getElementById('limitModal').classList.add('show'); return; }
-      usageCount++;
-      updateUsageBadge();
+      usageCount++; updateUsageBadge();
       addMessage("Here's your tailored resume and cover letter! 🎉");
+
+      // Build the result box with a streaming target
       const msgs = document.getElementById('messages');
       const div = document.createElement('div');
       div.className = 'msg bot';
-      div.innerHTML = `<div class="msg-avatar">✦</div><div style="flex:1"><div class="result-box">${data.result}</div><div class="result-actions"><button class="result-action-btn primary" onclick="openPreview()">Preview & Download PDF</button><button class="result-action-btn" onclick="copyResult()">Copy text</button><button class="result-action-btn" onclick="startChat()">Start over</button></div><p class="fine-print">⚠️ AI-generated content — review and personalise before submitting. CareerCraft is a drafting tool; you are responsible for the accuracy and authenticity of any application you submit.</p></div>`;
+      div.innerHTML = `
+        <div class="msg-avatar">✦</div>
+        <div style="flex:1">
+          <div class="result-box" id="streaming-result" style="white-space:pre-wrap;font-size:0.88rem;line-height:1.8;min-height:80px"></div>
+          <div class="result-actions" id="result-actions-area" style="display:none">
+            <button class="result-action-btn primary" onclick="openPreview()">Preview & Download PDF</button>
+            <button class="result-action-btn" onclick="copyResult()">Copy text</button>
+            <button class="result-action-btn" id="shareResumeBtn" onclick="shareResume()">Share link</button>
+            <button class="result-action-btn" onclick="startChat()">Start over</button>
+          </div>
+          <p class="fine-print" id="result-fine-print" style="display:none">⚠️ AI-generated content — review and personalise before submitting. CareerCraft is a drafting tool; you are responsible for the accuracy and authenticity of any application you submit.</p>
+        </div>`;
       msgs.appendChild(div);
       msgs.scrollTop = msgs.scrollHeight;
-      window._lastResult = data.result;
+
+      // Stream the response
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      const target = document.getElementById('streaming-result');
+      let full = '';
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const token = line.slice(6);
+          if (token === '[DONE]') break;
+          full += token;
+          target.textContent = full;
+          msgs.scrollTop = msgs.scrollHeight;
+        }
+      }
+
+      window._lastResult = full;
+      document.getElementById('result-actions-area').style.display = 'flex';
+      document.getElementById('result-fine-print').style.display = 'block';
       getMatchScore();
       document.getElementById('chatInputArea').style.display = 'flex';
+
     } catch { removeTyping(); addMessage("Oops! Something went wrong. Make sure your backend is running! 🔌"); }
+  }
+
+  async function shareResume() {
+    const btn = document.getElementById('shareResumeBtn');
+    if (!currentUser) { alert('Log in to share your resume!'); return; }
+
+    // Get the most recent resume id from history
+    btn.textContent = 'Getting link...'; btn.disabled = true;
+    try {
+      const resumes = await fetch(`${BACKEND}/history`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: currentUser.id })
+      }).then(r => r.json());
+
+      const latest = resumes?.resumes?.[0];
+      if (!latest) { btn.textContent = 'Share link'; btn.disabled = false; return; }
+
+      const res = await fetch(`${BACKEND}/resume/share-link`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume_id: latest.id, user_id: currentUser.id })
+      });
+      const data = await res.json();
+      if (data.share_id) {
+        const url = `${window.location.origin}${window.location.pathname}?resume=${data.share_id}`;
+        await navigator.clipboard.writeText(url);
+        btn.textContent = 'Link copied! ✓';
+        setTimeout(() => { btn.textContent = 'Share link'; btn.disabled = false; }, 2500);
+      }
+    } catch { btn.textContent = 'Share link'; btn.disabled = false; }
+  }
+
+  async function checkShareUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const shareId = params.get('resume');
+    if (!shareId) return false;
+
+    // Show a clean public resume view
+    document.querySelectorAll('.page, .landing-page').forEach(p => p.classList.remove('active'));
+    document.getElementById('navRight').innerHTML = `
+      <button class="nav-btn primary" onclick="showPage('auth'); setTab('signup')">Build mine free →</button>`;
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;z-index:1;padding:5rem 1.5rem 4rem;max-width:760px;margin:0 auto;';
+    wrap.innerHTML = `
+      <div style="text-align:center;margin-bottom:2rem">
+        <div class="hero-tag">Shared via CareerCraft</div>
+      </div>
+      <div class="result-box" id="shared-resume-content" style="min-height:200px;white-space:pre-wrap;font-size:0.88rem;line-height:1.85">
+        <div class="typing" style="margin:2rem auto;width:fit-content"><span></span><span></span><span></span></div>
+      </div>
+      <div style="margin-top:1.5rem;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+        <button class="lp-cta-primary" onclick="showPage('auth'); setTab('signup')">Build my own resume free →</button>
+        <button class="lp-cta-secondary" onclick="navigator.clipboard.writeText(window.location.href);this.textContent='Copied! ✓';setTimeout(()=>this.textContent='Copy link',2000)">Copy link</button>
+      </div>
+      <p class="fine-print" style="margin-top:1.5rem;text-align:center">This resume was generated with CareerCraft AI. Content has been shared publicly by the owner.</p>`;
+    document.body.appendChild(wrap);
+
+    try {
+      const res = await fetch(`${BACKEND}/resume/share/${shareId}`);
+      const data = await res.json();
+      const el = document.getElementById('shared-resume-content');
+      if (data.resume) {
+        el.textContent = data.resume.content;
+        document.title = `${data.resume.job_title || 'Resume'} — CareerCraft`;
+      } else {
+        el.textContent = 'This resume could not be found or may have been deleted.';
+      }
+    } catch {
+      document.getElementById('shared-resume-content').textContent = 'Could not load resume. Try again!';
+    }
+    return true;
   }
 
   function copyResult() {
@@ -1444,14 +1554,20 @@
     document.getElementById('proPlanBtn').textContent = plan === 'pro' ? 'Current plan ✓' : 'Upgrade to Pro →';
     document.getElementById('proplusPlanBtn').textContent = plan === 'proplus' ? 'Current plan ✓' : 'Get Pro+ →';
   }
-  // Auto login from saved session
-  const saved = localStorage.getItem('cc_user');
-  if (saved) { 
-    currentUser = JSON.parse(saved); 
-    enterApp();
-    checkUrlParams();
-  }
-  checkResetParams();
+  // Check for shared resume link first
+  (async () => {
+    const isShare = await checkShareUrl();
+    if (isShare) return; // Don't do normal app init if viewing shared resume
+
+    // Auto login from saved session
+    const saved = localStorage.getItem('cc_user');
+    if (saved) {
+      currentUser = JSON.parse(saved);
+      enterApp();
+      checkUrlParams();
+    }
+    checkResetParams();
+  })();
 
   function openPreview() {
     const raw = window._lastResult || '';
