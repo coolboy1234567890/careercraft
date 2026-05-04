@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from groq import Groq
@@ -69,7 +69,30 @@ def db_delete(table, filters):
     res = requests.delete(f"{SUPABASE_URL}/rest/v1/{table}?{filters}", headers=HEADERS)
     return res.status_code
 
-@app.route("/delete-resume", methods=["POST"])
+@app.route("/resume/share/<share_id>", methods=["GET"])
+def get_shared_resume(share_id):
+    resume = db_get("resumes", f"share_id=eq.{share_id}&select=content,job_title,created_at")
+    if not resume:
+        return jsonify({"error": "Resume not found"}), 404
+    return jsonify({"resume": resume[0]})
+
+
+@app.route("/resume/share-link", methods=["POST"])
+def get_share_link():
+    """Get or create a share_id for a resume."""
+    data = request.json
+    resume_id = data.get("resume_id")
+    user_id = data.get("user_id")
+    if not resume_id or not user_id:
+        return jsonify({"error": "Missing fields"}), 400
+    resume = db_get("resumes", f"id=eq.{resume_id}&user_id=eq.{user_id}&select=id,share_id")
+    if not resume:
+        return jsonify({"error": "Resume not found"}), 404
+    share_id = resume[0].get("share_id")
+    if not share_id:
+        share_id = secrets.token_urlsafe(10)
+        db_patch("resumes", f"id=eq.{resume_id}", {"share_id": share_id})
+    return jsonify({"share_id": share_id})
 def delete_resume():
     data = request.json
     resume_id = data.get("resume_id")
@@ -230,19 +253,32 @@ def generate_resume():
     Output ONLY the resume and cover letter. No explanations, no notes, no ATS optimization section.
     """
 
-    chat = groq(
-        messages=[{"role": "user", "content": prompt}],
+    chat = client.chat.completions.create(
+        messages=[SYSTEM_PROMPT] + [{"role": "user", "content": prompt}],
+        model="llama-3.3-70b-versatile",
+        stream=True,
     )
-    result = chat.choices[0].message.content
 
-    if user_id:
-        db_post("resumes", {
-            "user_id": user_id,
-            "content": result,
-            "job_title": job_title
-        })
+    def stream():
+        full = ""
+        for chunk in chat:
+            token = chunk.choices[0].delta.content or ""
+            full += token
+            yield f"data: {token}\n\n"
+        # After streaming, save to DB
+        if user_id:
+            db_post("resumes", {
+                "user_id": user_id,
+                "content": full,
+                "job_title": job_title,
+                "share_id": secrets.token_urlsafe(10)
+            })
+        yield "data: [DONE]\n\n"
 
-    return jsonify({"result": result})
+    return Response(stream(), mimetype="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no"
+    })
 
 @app.route("/create-checkout", methods=["POST"])
 def create_checkout():
