@@ -1358,7 +1358,7 @@
             <button class="result-action-btn" id="shareResumeBtn" onclick="shareResume()">Share link</button>
             <button class="result-action-btn" onclick="startChat()">Start over</button>
           </div>
-          <p class="fine-print" id="result-fine-print" style="display:none">⚠️ AI-generated content — review and personalise before submitting. CareerCraft is a drafting tool; you are responsible for the accuracy and authenticity of any application you submit.</p>
+          <p class="fine-print" id="result-fine-print" style="display:none">AI-generated draft — review before submitting.</p>
         </div>`;
       msgs.appendChild(div);
       msgs.scrollTop = msgs.scrollHeight;
@@ -1398,11 +1398,9 @@
   async function shareResume() {
     const btn = document.getElementById('shareResumeBtn');
     if (!currentUser) { alert('Log in to share your resume!'); return; }
-
-    // Get the most recent resume id from history
     btn.textContent = 'Getting link...'; btn.disabled = true;
     try {
-      const resumes = await fetch(`${BACKEND}/history`, {
+      const resumes = await fetch(`${BACKEND}/resumes`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: currentUser.id })
       }).then(r => r.json());
@@ -1420,6 +1418,8 @@
         await navigator.clipboard.writeText(url);
         btn.textContent = 'Link copied! ✓';
         setTimeout(() => { btn.textContent = 'Share link'; btn.disabled = false; }, 2500);
+      } else {
+        btn.textContent = 'Share link'; btn.disabled = false;
       }
     } catch { btn.textContent = 'Share link'; btn.disabled = false; }
   }
@@ -2399,7 +2399,7 @@
           <button class="result-action-btn" onclick="cDownloadDocx('Application Package')">Download Word</button>
           <button class="result-action-btn" onclick="restartCollegeChat()">Start over</button>
         </div>
-        <p class="fine-print">⚠️ AI-generated content — you <strong>must</strong> review, edit, and personalise this before submitting. Submitting AI-generated work without modification may violate your institution's academic integrity policy. CareerCraft is a drafting assistant; responsibility for what you submit is entirely yours.</p>
+        <p class="fine-print">AI-generated draft — review and personalise before submitting to any institution.</p>
       </div>`;
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
