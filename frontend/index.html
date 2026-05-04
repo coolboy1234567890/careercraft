@@ -359,7 +359,98 @@
   .history-empty { text-align:center; padding:4rem 2rem; color:var(--text3); }
   .history-empty p { font-size:0.9rem; margin-bottom:1.5rem; }
 
-  .fine-print { font-size: 0.74rem; color: var(--text3); line-height: 1.6; margin-top: 10px; padding: 8px 12px; background: var(--surface2); border-left: 2px solid var(--border2); border-radius: 0 6px 6px 0; }
+  .lp-footer-legal-text { font-size: 0.72rem; color: var(--text3); opacity: 0.55; max-width: 680px; margin: 1.25rem auto 0; line-height: 1.6; }
+
+  @media (max-width: 700px) {
+    .lp-features-grid { grid-template-columns: 1fr; }
+    .lp-plans-grid { grid-template-columns: 1fr; }
+    .lp-footer-inner { flex-direction: column; text-align: center; }
+  }
+  @media (max-width: 500px) {
+    .lp-h1 { font-size: 2rem; }
+    .lp-ctas { flex-direction: column; align-items: center; }
+  }
+
+  /* ── Landing Page ─────────────────────────────────────────── */
+  .landing-page { display: none; flex-direction: column; position: relative; z-index: 1; padding-top: 64px; }
+  .landing-page.active { display: flex; }
+  .lp-hero { text-align: center; padding: 7rem 1.5rem 4rem; max-width: 860px; margin: 0 auto; }
+  .lp-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 500; color: var(--accent2); background: var(--accent-glow); border: 1px solid #7c6aff33; padding: 5px 14px; border-radius: 999px; margin-bottom: 1.75rem; letter-spacing: 0.06em; text-transform: uppercase; }
+  .lp-tag::before { content: '✦'; font-size: 0.6rem; }
+  .lp-h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(2.4rem, 6vw, 4rem); line-height: 1.08; letter-spacing: -0.04em; margin-bottom: 1.25rem; }
+  .lp-h1 em { font-style: normal; background: linear-gradient(135deg, var(--accent2), #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .lp-sub { font-size: 1rem; color: var(--text2); line-height: 1.75; font-weight: 300; max-width: 560px; margin: 0 auto 2.5rem; }
+  .lp-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .lp-cta-primary { padding: 14px 32px; background: var(--accent); border: none; border-radius: 12px; color: white; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.2s; box-shadow: 0 0 32px #7c6aff44; }
+  .lp-cta-primary:hover { background: #9580ff; transform: translateY(-1px); box-shadow: 0 0 48px #7c6aff66; }
+  .lp-cta-secondary { padding: 14px 32px; background: transparent; border: 1px solid var(--border2); border-radius: 12px; color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; }
+  .lp-cta-secondary:hover { background: var(--surface); color: var(--text); }
+  .lp-social-proof { margin-top: 2rem; font-size: 0.8rem; color: var(--text3); }
+  .lp-social-proof strong { color: var(--accent2); }
+  .lp-preview { max-width: 680px; margin: 0 auto 6rem; padding: 0 1.5rem; }
+  .lp-preview-box { background: var(--surface); border: 1px solid var(--border2); border-radius: 20px; overflow: hidden; box-shadow: 0 0 80px #7c6aff12, 0 32px 64px #00000060; }
+  .lp-preview-header { padding: 1rem 1.5rem; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .lp-preview-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+  .lp-preview-status strong { display: block; font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700; }
+  .lp-preview-status span { font-size: 0.72rem; color: var(--green); display: flex; align-items: center; gap: 4px; }
+  .lp-preview-status span::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; }
+  .lp-preview-msgs { padding: 1.5rem; display: flex; flex-direction: column; gap: 12px; }
+  .lp-msg { display: flex; gap: 10px; }
+  .lp-msg.user { flex-direction: row-reverse; }
+  .lp-msg-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; }
+  .lp-bubble { padding: 10px 14px; border-radius: 14px; font-size: 0.85rem; line-height: 1.6; max-width: 80%; }
+  .lp-msg.bot .lp-bubble { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); border-radius: 4px 14px 14px 14px; }
+  .lp-msg.user .lp-bubble { background: var(--accent); color: white; border-radius: 14px 4px 14px 14px; }
+  .lp-features { max-width: 1040px; margin: 0 auto 6rem; padding: 0 1.5rem; }
+  .lp-section-tag { text-align: center; margin-bottom: 0.75rem; }
+  .lp-section-tag span { font-size: 0.72rem; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; }
+  .lp-section-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(1.6rem, 3.5vw, 2.2rem); text-align: center; letter-spacing: -0.03em; margin-bottom: 0.75rem; }
+  .lp-section-sub { text-align: center; color: var(--text2); font-size: 0.9rem; line-height: 1.7; margin-bottom: 3rem; }
+  .lp-features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .lp-feature-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 1.5rem; transition: border-color 0.2s; }
+  .lp-feature-card:hover { border-color: #7c6aff44; }
+  .lp-feature-icon { font-size: 1.5rem; margin-bottom: 0.75rem; }
+  .lp-feature-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem; }
+  .lp-feature-desc { font-size: 0.82rem; color: var(--text2); line-height: 1.6; }
+  .lp-steps { max-width: 760px; margin: 0 auto 6rem; padding: 0 1.5rem; }
+  .lp-step { display: flex; gap: 1.5rem; align-items: flex-start; padding: 1.75rem 0; border-bottom: 1px solid var(--border); }
+  .lp-step:last-child { border-bottom: none; }
+  .lp-step-num { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; background: var(--accent-glow); border: 1px solid #7c6aff22; border-radius: 12px; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent2); }
+  .lp-step-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; margin-bottom: 0.3rem; }
+  .lp-step-desc { font-size: 0.85rem; color: var(--text2); line-height: 1.6; }
+  .lp-pricing { max-width: 900px; margin: 0 auto 6rem; padding: 0 1.5rem; }
+  .lp-plans-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .lp-plan { background: var(--surface); border: 1px solid var(--border2); border-radius: 20px; padding: 1.75rem; position: relative; }
+  .lp-plan.featured { border-color: #7c6aff66; background: linear-gradient(160deg, #7c6aff0a, var(--surface)); box-shadow: 0 0 40px #7c6aff18; }
+  .lp-plan-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; font-weight: 500; padding: 4px 14px; border-radius: 999px; background: var(--accent); color: white; white-space: nowrap; }
+  .lp-plan-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; margin-bottom: 0.25rem; color: var(--text2); }
+  .lp-plan-price { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2.2rem; letter-spacing: -0.03em; margin-bottom: 1.25rem; }
+  .lp-plan-price span { font-size: 0.85rem; font-weight: 400; color: var(--text3); }
+  .lp-plan-features { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.5rem; }
+  .lp-plan-features li { font-size: 0.82rem; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+  .lp-plan-features li::before { content: '✓'; color: var(--green); font-size: 0.8rem; flex-shrink: 0; }
+  .lp-plan-features li.no::before { content: '✕'; color: var(--text3); }
+  .lp-plan-features li.no { color: var(--text3); }
+  .lp-plan-btn { width: 100%; padding: 11px; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+  .lp-plan-btn.outline { background: transparent; border: 1px solid var(--border2); color: var(--text2); }
+  .lp-plan-btn.outline:hover { background: var(--surface2); color: var(--text); }
+  .lp-plan-btn.filled { background: var(--accent); border: none; color: white; box-shadow: 0 0 24px #7c6aff44; }
+  .lp-plan-btn.filled:hover { background: #9580ff; }
+  .lp-cta-banner { max-width: 680px; margin: 0 auto 6rem; padding: 0 1.5rem; }
+  .lp-cta-banner-inner { background: linear-gradient(135deg, #7c6aff18, #a78bfa0a); border: 1px solid #7c6aff33; border-radius: 24px; padding: 3.5rem 2rem; text-align: center; }
+  .lp-cta-banner-inner h2 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(1.4rem, 3vw, 2rem); letter-spacing: -0.03em; margin-bottom: 0.75rem; }
+  .lp-cta-banner-inner p { font-size: 0.9rem; color: var(--text2); margin-bottom: 2rem; line-height: 1.7; }
+  .lp-footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; }
+  .lp-footer-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+  .lp-footer-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1rem; }
+  .lp-footer-logo span { color: var(--accent2); }
+  .lp-footer-links { display: flex; gap: 1.5rem; }
+  .lp-footer-links a { font-size: 0.8rem; color: var(--text3); text-decoration: none; cursor: pointer; transition: color 0.2s; }
+  .lp-footer-links a:hover { color: var(--text2); }
+  .lp-footer-copy { font-size: 0.75rem; color: var(--text3); }
+  .lp-footer-disc { font-size: 0.71rem; color: var(--text3); opacity: 0.5; max-width: 700px; margin: 1.25rem auto 0; line-height: 1.6; text-align: center; }
+  @media (max-width: 720px) { .lp-features-grid, .lp-plans-grid { grid-template-columns: 1fr; } .lp-footer-inner { flex-direction: column; text-align: center; } }
+  @media (max-width: 500px) { .lp-h1 { font-size: 2rem; } .lp-ctas { flex-direction: column; align-items: center; } }
   .fine-print strong { color: var(--text2); }
   footer { text-align: center; padding: 2rem 1.5rem; color: var(--text3); font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 2rem; }
   .footer-legal { display: block; font-size: 0.72rem; color: var(--text3); opacity: 0.6; max-width: 680px; margin: 0.75rem auto 0; line-height: 1.6; }
@@ -469,8 +560,201 @@
   </div>
 </nav>
 
+<!-- Landing Page -->
+<div class="landing-page active" id="page-landing">
+
+  <!-- Hero -->
+  <section class="lp-hero">
+    <div class="lp-tag">AI-powered career tools</div>
+    <h1 class="lp-h1">Your dream job starts<br/>with a <em>perfect resume.</em></h1>
+    <p class="lp-sub">CareerCraft uses AI to write resumes, cover letters, and college applications tailored to you — in seconds. No templates. No fluff. Just results.</p>
+    <div class="lp-ctas">
+      <button class="lp-cta-primary" onclick="showPage('auth'); setTab('signup')">Build my resume free →</button>
+      <button class="lp-cta-secondary" onclick="document.getElementById('lp-how').scrollIntoView({behavior:'smooth'})">See how it works</button>
+    </div>
+    <p class="lp-social-proof">Free to start &nbsp;·&nbsp; No credit card needed &nbsp;·&nbsp; <strong>Takes 2 minutes</strong></p>
+  </section>
+
+  <!-- Chat preview -->
+  <div class="lp-preview">
+    <div class="lp-preview-box">
+      <div class="lp-preview-header">
+        <div class="lp-preview-avatar">✦</div>
+        <div class="lp-preview-status">
+          <strong>CareerCraft AI</strong>
+          <span>Online — ready to build your resume</span>
+        </div>
+      </div>
+      <div class="lp-preview-msgs">
+        <div class="lp-msg bot">
+          <div class="lp-msg-avatar">✦</div>
+          <div class="lp-bubble">Hey! 👋 What role are you applying for?</div>
+        </div>
+        <div class="lp-msg user">
+          <div class="lp-msg-avatar">👤</div>
+          <div class="lp-bubble">Software engineer at a startup</div>
+        </div>
+        <div class="lp-msg bot">
+          <div class="lp-msg-avatar">✦</div>
+          <div class="lp-bubble">Nice! Tell me about your experience — even rough notes are fine, I'll turn them into something polished.</div>
+        </div>
+        <div class="lp-msg user">
+          <div class="lp-msg-avatar">👤</div>
+          <div class="lp-bubble">2 years at a fintech startup, built a payments API, led a team of 3</div>
+        </div>
+        <div class="lp-msg bot">
+          <div class="lp-msg-avatar">✦</div>
+          <div class="lp-bubble">✦ Generating your tailored resume... &nbsp;<span style="color:var(--accent2)">analyzing job requirements, matching keywords, writing impact statements</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <section class="lp-features">
+    <div class="lp-section-tag"><span>✦ What you get</span></div>
+    <h2 class="lp-section-title">Everything you need to land the job</h2>
+    <p class="lp-section-sub">Not just a resume builder — a full career toolkit powered by the same AI that helps thousands of professionals.</p>
+    <div class="lp-features-grid">
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon">📄</div>
+        <div class="lp-feature-title">AI Resume Builder</div>
+        <div class="lp-feature-desc">Chat with AI like a friend. Tell it your experience in plain language — it writes a professional, ATS-optimised resume instantly.</div>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon">✉️</div>
+        <div class="lp-feature-title">Cover Letter Generator</div>
+        <div class="lp-feature-desc">Tailored cover letters that match your resume to the job description. No more copy-pasting the same letter to every job.</div>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon">🔗</div>
+        <div class="lp-feature-title">Job URL Scraper</div>
+        <div class="lp-feature-desc">Paste a LinkedIn or Indeed job link — CareerCraft reads the posting and tailors your resume to it automatically.</div>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon">🎓</div>
+        <div class="lp-feature-title">College Application AI</div>
+        <div class="lp-feature-desc">Researches your exact university's requirements, then writes a full application package — personal statement, activities, why us, and supplements.</div>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon">🎯</div>
+        <div class="lp-feature-title">ATS Optimisation</div>
+        <div class="lp-feature-desc">Every resume is automatically optimised for applicant tracking systems. The right keywords, the right format, every time.</div>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon">✦</div>
+        <div class="lp-feature-title">Voice Matching <span style="font-size:0.7rem;color:var(--accent2);font-weight:400">Pro</span></div>
+        <div class="lp-feature-desc">Paste anything you've written — the AI analyses your vocabulary, rhythm, and personality and writes everything in your exact voice.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="lp-steps" id="lp-how">
+    <div class="lp-section-tag"><span>✦ How it works</span></div>
+    <h2 class="lp-section-title">From zero to hired in 3 steps</h2>
+    <p class="lp-section-sub">No forms to fill. No templates to wrestle with. Just a conversation.</p>
+    <div>
+      <div class="lp-step">
+        <div class="lp-step-num">1</div>
+        <div>
+          <div class="lp-step-title">Tell us about yourself</div>
+          <div class="lp-step-desc">Chat naturally with CareerCraft AI — share your experience, skills, and the role you're targeting. Bullet points, rough notes, anything works.</div>
+        </div>
+      </div>
+      <div class="lp-step">
+        <div class="lp-step-num">2</div>
+        <div>
+          <div class="lp-step-title">AI does the heavy lifting</div>
+          <div class="lp-step-desc">CareerCraft writes a tailored, ATS-optimised resume and cover letter in seconds. It matches keywords from the job description and formats everything perfectly.</div>
+        </div>
+      </div>
+      <div class="lp-step">
+        <div class="lp-step-num">3</div>
+        <div>
+          <div class="lp-step-title">Download and apply</div>
+          <div class="lp-step-desc">Preview your resume, download it as PDF, and apply with confidence. Edit anything you want in the built-in editor before you send.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="lp-pricing">
+    <div class="lp-section-tag"><span>✦ Pricing</span></div>
+    <h2 class="lp-section-title">Simple, honest pricing</h2>
+    <p class="lp-section-sub">Start free. Upgrade when you're ready. No hidden fees, no yearly traps.</p>
+    <div class="lp-plans-grid">
+      <div class="lp-plan">
+        <div class="lp-plan-name">Free</div>
+        <div class="lp-plan-price">$0 <span>/month</span></div>
+        <ul class="lp-plan-features">
+          <li>5 generations per day</li>
+          <li>Resume + cover letter</li>
+          <li>ATS keyword optimisation</li>
+          <li>College application AI</li>
+          <li class="no">Voice matching</li>
+          <li class="no">Unlimited saves</li>
+        </ul>
+        <button class="lp-plan-btn outline" onclick="showPage('auth'); setTab('signup')">Get started free</button>
+      </div>
+      <div class="lp-plan featured">
+        <div class="lp-plan-badge">Most popular</div>
+        <div class="lp-plan-name">Pro</div>
+        <div class="lp-plan-price">$10 <span>/month</span></div>
+        <ul class="lp-plan-features">
+          <li>Unlimited generations</li>
+          <li>Resume + cover letter</li>
+          <li>ATS keyword optimisation</li>
+          <li>College application AI</li>
+          <li>Voice matching ✦</li>
+          <li class="no">Multiple styles</li>
+        </ul>
+        <button class="lp-plan-btn filled" onclick="showPage('auth'); setTab('signup')">Start with Pro →</button>
+      </div>
+      <div class="lp-plan">
+        <div class="lp-plan-name">Pro+</div>
+        <div class="lp-plan-price">$20 <span>/month</span></div>
+        <ul class="lp-plan-features">
+          <li>Everything in Pro</li>
+          <li>Multiple resume styles</li>
+          <li>LinkedIn bio generator</li>
+          <li>Voice matching ✦</li>
+          <li>Priority AI speed</li>
+          <li>Unlimited saved resumes</li>
+        </ul>
+        <button class="lp-plan-btn outline" onclick="showPage('auth'); setTab('signup')">Get Pro+</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA banner -->
+  <div class="lp-cta-banner">
+    <div class="lp-cta-banner-inner">
+      <h2>Your next job is one resume away.</h2>
+      <p>Join thousands of job seekers using CareerCraft to land interviews faster. Free to start — no credit card needed.</p>
+      <button class="lp-cta-primary" onclick="showPage('auth'); setTab('signup')">Build my resume free →</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="lp-footer">
+    <div class="lp-footer-inner">
+      <div class="lp-footer-logo">Career<span>Craft</span></div>
+      <div class="lp-footer-links">
+        <a onclick="showPage('auth'); setTab('signup')">Get started</a>
+        <a onclick="showPage('auth'); setTab('login')">Log in</a>
+        <a onclick="document.getElementById('lp-how').scrollIntoView({behavior:'smooth'})">How it works</a>
+      </div>
+      <div class="lp-footer-copy">© 2025 CareerCraft</div>
+    </div>
+    <p class="lp-footer-disc">CareerCraft generates AI-assisted drafts as a starting point. All content must be reviewed and personalised before use. You are solely responsible for the accuracy and authenticity of any application you submit. Submitting AI-generated content without modification may violate employer expectations or institutional academic integrity policies.</p>
+  </footer>
+
+</div>
+
 <!-- Auth Page -->
-<div class="page active" id="page-auth">
+<div class="page" id="page-auth">
   <div class="auth-wrap">
     <div class="auth-card">
       <div class="auth-logo">Career<span>Craft</span></div>
@@ -817,10 +1101,16 @@
     showPage('auth');
   }
 
-  function goHome() { currentUser ? showPage('app') : showPage('auth'); }
+  function goHome() {
+    if (currentUser) { showPage('app'); return; }
+    document.querySelectorAll('.page, .landing-page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-landing').classList.add('active');
+    window.scrollTo(0, 0);
+  }
   function showPage(id) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.page, .landing-page').forEach(p => p.classList.remove('active'));
     document.getElementById('page-' + id).classList.add('active');
+    window.scrollTo(0, 0);
   }
 
   const state = { step: 0, jobDescription: '', experience: '', skills: '', education: '', tone: 'professional', voiceSample: null };
